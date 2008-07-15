@@ -184,29 +184,27 @@ moving (void)
 			cx = up->speed * ct * cos (up->theta);
 			cy = up->speed * ct * sin (up->theta);
 
+			unit_hit_x = collision_x (up);
+
+			switch (up->side_hit) {
+			case RIGHT:
+				up->x = unit_hit_x - up->w - 1;
+				cx = 0;
+				break;
+			case LEFT:
+				up->x = unit_hit_x;
+				cx = 0;
+				break;
+			}
+			
+			unit_hit_y = collision_y (up);
+
 			up->x += cx;
 			up->y += cy;
 			
 			up->lasttime = now;
 			unit_def (up);
 		}
-
-		unit_hit_x = collision_x (up);
-
-		switch (up->side_hit) {
-		case RIGHT:
-			if (up->speed) {
-				up->x = unit_hit_x - up->w - 1;
-			}
-			break;
-		case LEFT:
-			if (up->speed) {
-				up->x = unit_hit_x;
-			}
-			break;
-		}
-
-		unit_hit_y = collision_y (up);
 
 		unit_def (up);
 	}
