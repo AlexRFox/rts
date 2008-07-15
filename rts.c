@@ -1,33 +1,91 @@
 #include "alexsdl.h"
 
+enum {
+	WIDTH = 640,
+	HEIGHT = 480,
+};
+
+enum {
+	RIGHT = 1,
+	LEFT = 2,
+
+	TOP = 3,
+	BOTTOM = 4,
+};
+
 int mousebutton[10];
 double mouse_x, mouse_y;
 
-struct rect *selection, rect1, rect2;
+struct unit {
+	struct unit *next;
+	double x, y, h, w, center_x, center_y;
+	double top, bottom, left, right;
+	double speed, theta, moveto_x, moveto_y;
+	double lasttime, timelimit;
+	Uint32 color;
+	int side_hit;
+};
+
+struct unit *selection, *first_unit, *last_unit;
 
 void
-rect_init (void)
+unit_def (struct unit *up)
 {
-	rect_def (&rect1, 200, 240, 30, 50, 0x00ff00);
-	rect_def (&rect2, 400, 240, 50, 40, 0xff0000);
+	up->top = up->y;
+	up->bottom = up->y + up->h;
+	up->left = up->x;
+	up->right = up->x + up->w;
+	up->center_x = up->x + up->w / 2;
+	up->center_y = up->y + up->h / 2;
 }
 
 void
-selecting()
+init_units (void)
 {
+	double units, unit_x, unit_y;
+
+	unit_x = 200;
+	unit_y = 240;
+
+	for (units = 1; units <= 2; units++) {
+		struct unit *up;
+		up = xcalloc (1, sizeof *up);
+
+		if (first_unit == NULL) {
+			first_unit = up;
+		} else {
+			last_unit->next = up;
+		}
+
+		last_unit = up;
+
+		up->x = unit_x;
+		up->y = unit_y;
+		up->h = 20;
+		up->w = 40;
+		up->color = 0x00ff00ff;
+		unit_def (up);
+		unit_x += 200;
+	}
+}
+
+void
+selecting (void)
+{
+	struct unit *up;
+
 	if (mousebutton[1]) {
-		if (mouse_x >= rect1.right && mouse_x <= rect1.right
-		    && mouse_y >= rect1.top && mouse_y <= rect1.bottom) {
-			selection = &rect1;
-		} else if (mouse_x >= rect2.right && mouse_x <= rect2.right
-			   && mouse_y >= rect2.top && mouse_y <= rect2.bottom) {
-			selection = &rect2;
+		for (up = first_unit; up; up = up->next) {
+			if (mouse_x >= up->left && mouse_x <= up->right
+			    && mouse_y >= up->top && mouse_y <= up->bottom) {
+				selection = up;
+			}
 		}
 	}
 }
 
 void
-destination()
+destination (void)
 {
 	double dx, dy, now;
 
@@ -37,81 +95,145 @@ destination()
 			
 			selection->moveto_x = mouse_x;
 			selection->moveto_y = mouse_y;
-			dx = selection->moveto_x - selection->middle_x;
-			dy = selection->moveto_y - selection->middle_y;
-			selection->theta = atan2 (dy, dx);
 			selection->speed = 100;
+			dx = selection->moveto_x - selection->center_x;
+			dy = selection->moveto_y - selection->center_y;
+			selection->theta = atan2 (dy, dx);
 			selection->timelimit = now
 				+ hypot (dy, dx) / selection->speed;
-
 			selection->lasttime = now;
 		}
 	}
 }
 
-/*int
-collision (struct rect *rp1, struct rect *rp2)
+int
+collision_x (struct unit *up1)
 {
+	struct unit *up2;
 
-}*/
+	for (up2 = first_unit; up2; up2 = up2->next) {
+		if (up2 == up1) {
+			continue;
+		}
+		if (up1->right >= up2->left && up1->right <= up2->right) {
+			if ((up1->top >= up2->top && up1->top <= up2->bottom)
+			    || (up1->bottom >= up2->top && up1->bottom <= up2->bottom)) {
+				up1->side_hit = RIGHT;
+				return (up2->left);
+			}
+		}
+		if (up1->left <= up2->right && up1->left >= up2->left) {
+			if ((up1->top >= up2->top && up1->top <= up2->bottom)
+			    || (up1->bottom >= up2->top && up1->bottom <= up2->bottom)) {
+				up1->side_hit = LEFT;
+				return (up2->right);
+			}
+		}
+	}
+
+	return (0);
+}
+
+int
+collision_y (struct unit *up1)
+{
+	struct unit *up2;
+
+	for (up2 = first_unit; up2; up2 = up2->next) {
+		if (up2 == up1) {
+			continue;
+		}
+		if (up1->top <= up2->bottom && up1->top >= up2->top) {
+			if ((up1->right >= up2->left && up1->right <= up2->right)
+			    || (up1->left >= up2->left && up1->left <= up2->right)) {
+				up1->side_hit = TOP;
+				return (up2->bottom);
+			}
+		}
+		if (up1->bottom >= up2->top && up1->bottom <= up2->bottom) {
+			if ((up1->right >= up2->left && up1->right <= up2->right)
+			    || (up1->left >= up2->left && up1->left <= up2->right)) {
+				up1->side_hit = BOTTOM;
+				return (up2->top);
+			}
+		}
+	}
+
+	return (0);
+}
 
 void
-moving(struct rect *rp)
+moving (void)
 {
-	double now, dt, dx, dy, old_x, old_y;
+	double now, ct, cx, cy, dx, dy, unit_hit_x, unit_hit_y;
+	struct unit *up;
 
-	if (rp) {
-		now = get_secs();
-		old_x = rp->x;
-		old_y = rp->y;
-		if (now > rp->timelimit) {
-			rp->speed = 0;
-		}
-		if (rp->speed) {
-			
-			dt = now - rp->lasttime;
-			
-			dx = rp->speed * dt * cos (rp->theta);
-			dy = rp->speed * dt * sin (rp->theta);
-			
-			rp->x += dx;
-			rp->y += dy;
-			rp->middle_x += dx;
-			rp->middle_y += dy;
+	for (up = first_unit; up; up = up->next) {
+		now = get_secs ();
 
-			rp->lasttime = now;
+		if (now > up->timelimit) {
+			up->speed = 0;
 		}
-/*		if (touching (&c1, &c2)) {
-			rp->x = old_x;
-			rp->y = old_y;
-			}*/
+		if (up->speed) {
+			dx = up->moveto_x - up->center_x;
+			dy = up->moveto_y - up->center_y;
+			up->theta = atan2 (dy, dx);
+			
+			ct = now - up->lasttime;
+			
+			cx = up->speed * ct * cos (up->theta);
+			cy = up->speed * ct * sin (up->theta);
+
+			up->x += cx;
+			up->y += cy;
+			
+			up->lasttime = now;
+			unit_def (up);
+		}
+
+		unit_hit_x = collision_x (up);
+
+		switch (up->side_hit) {
+		case RIGHT:
+			if (up->speed) {
+				up->x = unit_hit_x - up->w - 1;
+			}
+			break;
+		case LEFT:
+			if (up->speed) {
+				up->x = unit_hit_x;
+			}
+			break;
+		}
+
+		unit_hit_y = collision_y (up);
+
+		unit_def (up);
 	}
 }
 
 void
-draw()
+draw (void)
 {
-	boxColor (screen, rect1.left, rect1.top, rect1.right, rect1.bottom,
-		  rect1.color);
-/*	boxColor (screen, rect2.x, rect2.y, rect2.x + rect2.w, rect2.y + rect2.h,
-	rect2.color);*/
-/*	if (selection == &rect1) {
-		circleColor (screen, rect1.x, rect1.y, (rect1.w + rect1.h) / 2,
-			     rect1.color);
+	struct unit *up;
+	for (up = first_unit; up; up = up->next) {
+		boxColor (screen, up->left, up->top, up->right, up->bottom,
+			  up->color);
+		if (selection == up) {
+			rectangleColor (screen, up->x - 3, up->y - 3,
+					up->x + up->w + 3, up->y + up->h +3,
+					up->color);
+		}
 	}
-	if (selection == &rect2) {
-		circleColor (screen, rect2.x, rect2.y, (rect2.w + rect2.h) / 2,
-			     rect2.color);
-			     }*/
 }
 
 void
-process_input()
+process_input (void)
 {
 	SDL_Event event;
 	int key;
 
-	while (SDL_PollEvent(&event)) {
+	while (SDL_PollEvent (&event)) {
 		key = event.key.keysym.sym;
 		switch (event.type) {
 		case SDL_QUIT:
@@ -122,7 +244,7 @@ process_input()
 			}
 		case SDL_MOUSEBUTTONDOWN:
 			mousebutton[event.button.button] = 1;
-			destination();
+			destination ();
 			break;
 		case SDL_MOUSEBUTTONUP:
 			mousebutton[event.button.button] = 0;
@@ -136,21 +258,20 @@ process_input()
 }
 
 int
-main(int argc, char **argv)
+main (int argc, char **argv)
 {
-	alexsdl_init (640, 480, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
 
-	rect_init ();
+	init_units ();
 
 	while (1) {
-		process_input();
-		SDL_FillRect(screen, NULL, 0x000000);
-/*		selecting();
-		moving(&rect1);
-		moving(&rect2);*/
-		draw();
-		SDL_Flip(screen);
+		process_input ();
+		SDL_FillRect (screen, NULL, 0x000000);
+		selecting ();
+		moving ();
+		draw ();
+		SDL_Flip (screen);
 	}
 
-	return 0;
+	return (0);
 }
