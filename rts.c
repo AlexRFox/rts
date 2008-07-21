@@ -11,6 +11,8 @@ enum {
 
 	TOP = 3,
 	BOTTOM = 4,
+
+	SPEED = 100,
 };
 
 int mousebutton[10];
@@ -20,7 +22,7 @@ struct unit {
 	struct unit *next;
 	double x, y, h, w, center_x, center_y;
 	double top, bottom, left, right;
-	double vel_x, vel_y, moveto_x, moveto_y;
+	double vel_x, vel_y, moveto_x, moveto_y, moving;
 	double lasttime;
 	Uint32 color;
 	int side_hit_h, side_hit_v;
@@ -68,6 +70,7 @@ init_units (void)
 		up->moveto_x = up->center_x;
 		up->moveto_y = up->center_y;
 		up->lasttime = get_secs();
+		up->moving = 0;
 		unit_x += 200;
 	}
 }
@@ -99,6 +102,7 @@ destination (void)
 			selection->moveto_x = mouse_x;
 			selection->moveto_y = mouse_y;
 			selection->lasttime = now;
+			selection->moving = 1;
 		}
 	}
 }
@@ -169,20 +173,29 @@ moving (void)
 	for (up = first_unit; up; up = up->next) {
 		now = get_secs ();
 
-		dx = up->moveto_x - up->center_x;
-		dy = up->moveto_y - up->center_y;
-		theta = atan2 (dy, dx);
-
-		dt = now - up->lasttime;
-
-		up->vel_x = 100 * dt * cos (theta);
-		up->vel_y = 100 * dt * sin (theta);
-
-		up->x += up->vel_x;
-		up->y += up->vel_y;
-		
-		up->lasttime = now;
-		unit_def (up);
+		if (up->moving) {
+			dx = up->moveto_x - up->center_x;
+			dy = up->moveto_y - up->center_y;
+			theta = atan2 (dy, dx);
+			
+			dt = now - up->lasttime;
+			
+			up->vel_x = SPEED * dt * cos (theta);
+			up->vel_y = SPEED * dt * sin (theta);
+			
+			if (fabs (up->vel_x) > fabs (dx)
+			    && fabs (up->vel_y) > fabs (dy)) {
+				up->x = up->moveto_x - up->w / 2;
+				up->y = up->moveto_y - up->h / 2;
+				up->moving = 0;
+			} else {
+				up->x += up->vel_x;
+				up->y += up->vel_y;
+			}
+			
+			up->lasttime = now;
+			unit_def (up);
+		}
 	}
 }
 
