@@ -6,12 +6,6 @@ enum {
 };
 
 enum {
-	RIGHT = 1,
-	LEFT = 2,
-
-	TOP = 3,
-	BOTTOM = 4,
-
 	SPEED = 100,
 };
 
@@ -25,7 +19,6 @@ struct unit {
 	double vel_x, vel_y, moveto_x, moveto_y, moving;
 	double lasttime;
 	Uint32 color;
-	int side_hit_h, side_hit_v;
 };
 
 struct unit *selection, *first_unit, *last_unit;
@@ -107,7 +100,7 @@ destination (void)
 	}
 }
 
-/*
+
 int
 collision_x (struct unit *up1)
 {
@@ -117,24 +110,28 @@ collision_x (struct unit *up1)
 		if (up2 == up1) {
 			continue;
 		}
-		if (up1->right >= up2->left && up1->right <= up2->right) {
-			if ((up1->top >= up2->top && up1->top <= up2->bottom)
-			    || (up1->bottom >= up2->top && up1->bottom <= up2->bottom)) {
-				up1->side_hit_h = RIGHT;
-				return (up2->left);
+		if (up1->right + up1->vel_x >= up2->left
+		    && up1->right + up1->vel_x <= up2->right) {
+			if ((up1->top + up1->vel_y >= up2->top
+			     && up1->top + up1->vel_y <= up2->bottom)
+			    || (up1->bottom + up1->vel_y >= up2->top
+				&& up1->bottom + up1->vel_y <= up2->bottom)) {
+				return (1);
 			}
 		}
-		if (up1->left <= up2->right && up1->left >= up2->left) {
-			if ((up1->top >= up2->top && up1->top <= up2->bottom)
-			    || (up1->bottom >= up2->top && up1->bottom <= up2->bottom)) {
-			    up1->side_hit_h = LEFT;
-				return (up2->right);
+		if (up1->left + up1->vel_x <= up2->right
+		    && up1->left + up1->vel_x >= up2->left) {
+			if ((up1->top + up1->vel_y >= up2->top
+			     && up1->top + up1->vel_y <= up2->bottom)
+			    || (up1->bottom + up1->vel_y >= up2->top
+				&& up1->bottom + up1->vel_y <= up2->bottom)) {
+				return (1);
 			}
 		}
 	}
 
 	return (0);
-	}
+}
 
 int
 collision_y (struct unit *up1)
@@ -145,24 +142,28 @@ collision_y (struct unit *up1)
 		if (up2 == up1) {
 			continue;
 		}
-		if (up1->top <= up2->bottom && up1->top >= up2->top) {
-			if ((up1->right >= up2->left && up1->right <= up2->right)
-			    || (up1->left >= up2->left && up1->left <= up2->right)) {
-				up1->side_hit_v = TOP;
-				return (up2->bottom);
+		if (up1->top + up1->vel_y <= up2->bottom
+		    && up1->top + up1->vel_y >= up2->top) {
+			if ((up1->left + up1->vel_x >= up2->left
+			     && up1->left + up1->vel_x <= up2->right)
+			    || (up1->right + up1->vel_x >= up2->left
+				&& up1->right + up1->vel_x <= up2->right)) {
+				return (1);
 			}
 		}
-		if (up1->bottom >= up2->top && up1->bottom <= up2->bottom) {
-			if ((up1->right >= up2->left && up1->right <= up2->right)
-			    || (up1->left >= up2->left && up1->left <= up2->right)) {
-				up1->side_hit_v = BOTTOM;
-				return (up2->top);
+		if (up1->bottom + up1->vel_y >= up2->top
+		    && up1->bottom + up1->vel_y <= up2->bottom) {
+			if ((up1->left + up1->vel_x >= up2->left
+			     && up1->left + up1->vel_x <= up2->right)
+			    || (up1->right + up1->vel_x >= up2->left
+				&& up1->right + up1->vel_x <= up2->right)) {
+				return (1);
 			}
 		}
 	}
 
 	return (0);
-}*/
+}
 
 void
 moving (void)
@@ -189,7 +190,13 @@ moving (void)
 				up->y = up->moveto_y - up->h / 2;
 				up->moving = 0;
 			} else {
+				if (collision_x (up)) {
+					up->vel_x = 0;
+				}
 				up->x += up->vel_x;
+				if (collision_y (up)) {
+					up->vel_y = 0;
+				}
 				up->y += up->vel_y;
 			}
 			
