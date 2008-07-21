@@ -20,8 +20,8 @@ struct unit {
 	struct unit *next;
 	double x, y, h, w, center_x, center_y;
 	double top, bottom, left, right;
-	double speed, theta, moveto_x, moveto_y;
-	double lasttime, timelimit;
+	double vel_x, vel_y, moveto_x, moveto_y;
+	double lasttime;
 	Uint32 color;
 	int side_hit_h, side_hit_v;
 };
@@ -65,6 +65,9 @@ init_units (void)
 		up->w = 40;
 		up->color = 0x00ff00ff;
 		unit_def (up);
+		up->moveto_x = up->center_x;
+		up->moveto_y = up->center_y;
+		up->lasttime = get_secs();
 		unit_x += 200;
 	}
 }
@@ -87,25 +90,20 @@ selecting (void)
 void
 destination (void)
 {
-	double dx, dy, now;
-
+	double now;
+	
 	if (mousebutton[3]) {
 		if (selection) {
 			now = get_secs();
 			
 			selection->moveto_x = mouse_x;
 			selection->moveto_y = mouse_y;
-			selection->speed = 100;
-			dx = selection->moveto_x - selection->center_x;
-			dy = selection->moveto_y - selection->center_y;
-			selection->theta = atan2 (dy, dx);
-			selection->timelimit = now
-				+ hypot (dy, dx) / selection->speed;
 			selection->lasttime = now;
 		}
 	}
 }
 
+/*
 int
 collision_x (struct unit *up1)
 {
@@ -125,14 +123,14 @@ collision_x (struct unit *up1)
 		if (up1->left <= up2->right && up1->left >= up2->left) {
 			if ((up1->top >= up2->top && up1->top <= up2->bottom)
 			    || (up1->bottom >= up2->top && up1->bottom <= up2->bottom)) {
-				up1->side_hit_h = LEFT;
+			    up1->side_hit_h = LEFT;
 				return (up2->right);
 			}
 		}
 	}
 
 	return (0);
-}
+	}
 
 int
 collision_y (struct unit *up1)
@@ -160,67 +158,30 @@ collision_y (struct unit *up1)
 	}
 
 	return (0);
-}
+}*/
 
 void
 moving (void)
 {
-	double now, ct, cx, cy, dx, dy, unit_hit_x, unit_hit_y;
+	double now, dt, dx, dy, theta;
 	struct unit *up;
 
 	for (up = first_unit; up; up = up->next) {
 		now = get_secs ();
 
-		if (now > up->timelimit) {
-			up->speed = 0;
-		}
-		if (up->speed) {
-			dx = up->moveto_x - up->center_x;
-			dy = up->moveto_y - up->center_y;
-			up->theta = atan2 (dy, dx);
-			
-			ct = now - up->lasttime;
-			
-			cx = up->speed * ct * cos (up->theta);
-			cy = up->speed * ct * sin (up->theta);
+		dx = up->moveto_x - up->center_x;
+		dy = up->moveto_y - up->center_y;
+		theta = atan2 (dy, dx);
 
-			unit_hit_x = collision_x (up);
+		dt = now - up->lasttime;
 
-			switch (up->side_hit_h) {
-			case RIGHT:
-				up->x = unit_hit_x - up->w - 1;
-				cx = 0;
-				break;
-			case LEFT:
-				up->x = unit_hit_x;
-				cx = 0;
-				break;
-			default:
-				break;
-			}
-			
-			unit_hit_y = collision_y (up);
-/*
-			switch (up->side_hit_v) {
-			case TOP:
-				up->y = unit_hit_y + 1;
-				cy = 0;
-				break;
-			case BOTTOM:
-				up->y = unit_hit_y - up->h - 1;
-				cy = 0;
-				break;
-			default:
-				break;
-			}
-*/
-			up->x += cx;
-			up->y += cy;
-			
-			up->lasttime = now;
-			unit_def (up);
-		}
+		up->vel_x = 100 * dt * cos (theta);
+		up->vel_y = 100 * dt * sin (theta);
 
+		up->x += up->vel_x;
+		up->y += up->vel_y;
+		
+		up->lasttime = now;
 		unit_def (up);
 	}
 }
