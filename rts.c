@@ -23,7 +23,7 @@ struct unit {
 	double speed, theta, moveto_x, moveto_y;
 	double lasttime, timelimit;
 	Uint32 color;
-	int side_hit;
+	int side_hit_h, side_hit_v;
 };
 
 struct unit *selection, *first_unit, *last_unit;
@@ -118,14 +118,14 @@ collision_x (struct unit *up1)
 		if (up1->right >= up2->left && up1->right <= up2->right) {
 			if ((up1->top >= up2->top && up1->top <= up2->bottom)
 			    || (up1->bottom >= up2->top && up1->bottom <= up2->bottom)) {
-				up1->side_hit = RIGHT;
+				up1->side_hit_h = RIGHT;
 				return (up2->left);
 			}
 		}
 		if (up1->left <= up2->right && up1->left >= up2->left) {
 			if ((up1->top >= up2->top && up1->top <= up2->bottom)
 			    || (up1->bottom >= up2->top && up1->bottom <= up2->bottom)) {
-				up1->side_hit = LEFT;
+				up1->side_hit_h = LEFT;
 				return (up2->right);
 			}
 		}
@@ -146,14 +146,14 @@ collision_y (struct unit *up1)
 		if (up1->top <= up2->bottom && up1->top >= up2->top) {
 			if ((up1->right >= up2->left && up1->right <= up2->right)
 			    || (up1->left >= up2->left && up1->left <= up2->right)) {
-				up1->side_hit = TOP;
+				up1->side_hit_v = TOP;
 				return (up2->bottom);
 			}
 		}
 		if (up1->bottom >= up2->top && up1->bottom <= up2->bottom) {
 			if ((up1->right >= up2->left && up1->right <= up2->right)
 			    || (up1->left >= up2->left && up1->left <= up2->right)) {
-				up1->side_hit = BOTTOM;
+				up1->side_hit_v = BOTTOM;
 				return (up2->top);
 			}
 		}
@@ -186,7 +186,7 @@ moving (void)
 
 			unit_hit_x = collision_x (up);
 
-			switch (up->side_hit) {
+			switch (up->side_hit_h) {
 			case RIGHT:
 				up->x = unit_hit_x - up->w - 1;
 				cx = 0;
@@ -195,10 +195,25 @@ moving (void)
 				up->x = unit_hit_x;
 				cx = 0;
 				break;
+			default:
+				break;
 			}
 			
 			unit_hit_y = collision_y (up);
-
+/*
+			switch (up->side_hit_v) {
+			case TOP:
+				up->y = unit_hit_y + 1;
+				cy = 0;
+				break;
+			case BOTTOM:
+				up->y = unit_hit_y - up->h - 1;
+				cy = 0;
+				break;
+			default:
+				break;
+			}
+*/
 			up->x += cx;
 			up->y += cy;
 			
