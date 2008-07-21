@@ -42,7 +42,7 @@ init_units (void)
 	unit_x = 200;
 	unit_y = 240;
 
-	for (units = 1; units <= 2; units++) {
+	for (units = 1; units <= 3; units++) {
 		struct unit *up;
 		up = xcalloc (1, sizeof *up);
 
@@ -64,7 +64,7 @@ init_units (void)
 		up->moveto_y = up->center_y;
 		up->lasttime = get_secs();
 		up->moving = 0;
-		unit_x += 200;
+		unit_x += 100;
 	}
 }
 
@@ -110,26 +110,20 @@ collision_x (struct unit *up1)
 		if (up2 == up1) {
 			continue;
 		}
-		if (up1->right + up1->vel_x >= up2->left
-		    && up1->right + up1->vel_x <= up2->right) {
-			if ((up1->top + up1->vel_y >= up2->top
-			     && up1->top + up1->vel_y <= up2->bottom)
-			    || (up1->bottom + up1->vel_y >= up2->top
-				&& up1->bottom + up1->vel_y <= up2->bottom)) {
-				return (1);
-			}
+		if (up1->right + up1->vel_x < up2->left) {
+			return (0);
 		}
-		if (up1->left + up1->vel_x <= up2->right
-		    && up1->left + up1->vel_x >= up2->left) {
-			if ((up1->top + up1->vel_y >= up2->top
-			     && up1->top + up1->vel_y <= up2->bottom)
-			    || (up1->bottom + up1->vel_y >= up2->top
-				&& up1->bottom + up1->vel_y <= up2->bottom)) {
-				return (1);
-			}
+		if (up1->left + up1->vel_x > up2->right) {
+			return (0);
+		}
+		if ((up1->top >= up2->top
+		     && up1->top <= up2->bottom)
+		    || (up1->bottom >= up2->top
+			&& up1->bottom <= up2->bottom)) {
+			return (1);
 		}
 	}
-
+	
 	return (0);
 }
 
@@ -142,23 +136,17 @@ collision_y (struct unit *up1)
 		if (up2 == up1) {
 			continue;
 		}
-		if (up1->top + up1->vel_y <= up2->bottom
-		    && up1->top + up1->vel_y >= up2->top) {
-			if ((up1->left + up1->vel_x >= up2->left
-			     && up1->left + up1->vel_x <= up2->right)
-			    || (up1->right + up1->vel_x >= up2->left
-				&& up1->right + up1->vel_x <= up2->right)) {
-				return (1);
-			}
+		if (up1->top + up1->vel_y > up2->bottom) {
+			return (0);
 		}
-		if (up1->bottom + up1->vel_y >= up2->top
-		    && up1->bottom + up1->vel_y <= up2->bottom) {
-			if ((up1->left + up1->vel_x >= up2->left
-			     && up1->left + up1->vel_x <= up2->right)
-			    || (up1->right + up1->vel_x >= up2->left
-				&& up1->right + up1->vel_x <= up2->right)) {
-				return (1);
-			}
+		if (up1->bottom + up1->vel_y < up2->top) {
+			return (0);
+		}
+		if ((up1->left >= up2->left
+		     && up1->left <= up2->right)
+		    || (up1->right >= up2->left
+			&& up1->right <= up2->right)) {
+			return (1);
 		}
 	}
 
