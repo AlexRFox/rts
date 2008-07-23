@@ -42,7 +42,7 @@ init_units (void)
 	unit_x = 200;
 	unit_y = 240;
 
-	for (units = 1; units <= 3; units++) {
+	for (units = 0; units <= 2; units++) {
 		struct unit *up;
 		up = xcalloc (1, sizeof *up);
 
@@ -105,52 +105,44 @@ int
 collision_x (struct unit *up1)
 {
 	struct unit *up2;
+	double collide;
 
 	for (up2 = first_unit; up2; up2 = up2->next) {
 		if (up2 == up1) {
 			continue;
 		}
-		if (up1->right + up1->vel_x < up2->left) {
-			return (0);
-		}
-		if (up1->left + up1->vel_x > up2->right) {
-			return (0);
-		}
-		if ((up1->top >= up2->top
-		     && up1->top <= up2->bottom)
-		    || (up1->bottom >= up2->top
-			&& up1->bottom <= up2->bottom)) {
+		if (up1->right + up1->vel_x < up2->left
+		    || up1->left + up1->vel_x > up2->right
+		    || up1->top > up2->bottom
+		    || up1->bottom < up2->top) {
+			collide = 0;
+		} else {
 			return (1);
 		}
 	}
-	
-	return (0);
+	return (collide);
 }
 
 int
 collision_y (struct unit *up1)
 {
 	struct unit *up2;
+	double collide;
 
 	for (up2 = first_unit; up2; up2 = up2->next) {
 		if (up2 == up1) {
 			continue;
 		}
-		if (up1->top + up1->vel_y > up2->bottom) {
-			return (0);
-		}
-		if (up1->bottom + up1->vel_y < up2->top) {
-			return (0);
-		}
-		if ((up1->left >= up2->left
-		     && up1->left <= up2->right)
-		    || (up1->right >= up2->left
-			&& up1->right <= up2->right)) {
+		if (up1->top + up1->vel_y > up2->bottom
+		    || up1->bottom + up1->vel_y < up2->top
+		    || up1->right < up2->left
+		    || up1->left > up2->right) {
+			collide = 0;
+		} else {
 			return (1);
 		}
 	}
-
-	return (0);
+	return (collide);
 }
 
 void
