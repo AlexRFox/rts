@@ -2,6 +2,7 @@
 #include <SDL.h>
 #include <SDL_gfxPrimitives.h>
 #include <SDL_ttf.h>
+#include <SDL_image.h>
 
 SDL_Surface *screen;
 TTF_Font *font;

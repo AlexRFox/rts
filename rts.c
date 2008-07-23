@@ -31,6 +31,14 @@ struct rect {
 
 struct rect selectbox;
 
+struct dest {
+	double x, y;
+	SDL_Surface *frames[8];
+	double lasttime, drawing;
+};
+
+struct dest destimg;
+
 void
 unit_def (struct unit *up)
 {
@@ -40,6 +48,18 @@ unit_def (struct unit *up)
 	up->right = up->x + up->w;
 	up->center_x = up->x + up->w / 2;
 	up->center_y = up->y + up->h / 2;
+}
+
+void
+load_blit (SDL_Surface **img, char *string)
+{
+	*img = SDL_DisplayFormat
+		(IMG_Load (string));
+	if (img == NULL) {
+		printf ("WAAAA! Image didn't load!");
+		exit (1);
+	}
+	SDL_SetColorKey (*img, SDL_SRCCOLORKEY, 0xff00ff);
 }
 
 void
@@ -81,6 +101,25 @@ init_selectbox (void)
 {
 	selectbox.drawing = 0;
 	selectbox.color = 0x0000ffff;
+	
+}
+
+void
+init_destimg (void)
+{
+	double now;
+
+	now = get_secs ();
+
+	load_blit (&destimg.frames[0], "destination/frame00.png");
+	load_blit (&destimg.frames[1], "destination/frame01.png");
+	load_blit (&destimg.frames[2], "destination/frame02.png");
+	load_blit (&destimg.frames[3], "destination/frame03.png");
+	load_blit (&destimg.frames[4], "destination/frame04.png");
+	load_blit (&destimg.frames[5], "destination/frame05.png");
+	load_blit (&destimg.frames[6], "destination/frame06.png");
+	load_blit (&destimg.frames[7], "destination/frame07.png");
+	destimg.lasttime = now;
 }
 
 void
@@ -181,6 +220,10 @@ destination (void)
 				up->moving = 1;
 			}
 		}
+		destimg.drawing = 1;
+		destimg.x = mouse_x - 20;
+		destimg.y = mouse_y - 20;
+		destimg.lasttime = now;
 	}
 }
 
@@ -272,7 +315,54 @@ moving (void)
 void
 draw (void)
 {
+	double now, dt;
 	struct unit *up;
+
+	now = get_secs ();
+
+	if (destimg.drawing) {
+		dt = floor (10 * (now - destimg.lasttime));
+		if (dt < 8) {
+			switch ((int) dt) {
+			case 0:
+				draw_blit (destimg.frames[0],
+					   destimg.x, destimg.y);
+				break;
+			case 1:
+				draw_blit (destimg.frames[1],
+					   destimg.x, destimg.y);
+				break;
+			case 2:
+				draw_blit (destimg.frames[2],
+					   destimg.x, destimg.y);
+				break;
+			case 3:
+				draw_blit (destimg.frames[3],
+					   destimg.x, destimg.y);
+				break;
+			case 4:
+				draw_blit (destimg.frames[4],
+					   destimg.x, destimg.y);
+				break;
+			case 5:
+				draw_blit (destimg.frames[5],
+					   destimg.x, destimg.y);
+				break;
+			case 6:
+				draw_blit (destimg.frames[6],
+					   destimg.x, destimg.y);
+				break;
+			case 7:
+				draw_blit (destimg.frames[7],
+					   destimg.x, destimg.y);
+				break;
+			}
+
+		} else {
+			destimg.drawing = 0;
+		}
+	}
+
 	for (up = first_unit; up; up = up->next) {
 		boxColor (screen, up->left, up->top, up->right, up->bottom,
 			  up->color);
@@ -282,6 +372,7 @@ draw (void)
 					up->color);
 		}
 	}
+
 	if (selectbox.drawing) {
 		rectangleColor (screen, selectbox.x1, selectbox.y1,
 				selectbox.x2, selectbox.y2, selectbox.color);
@@ -325,6 +416,7 @@ main (int argc, char **argv)
 
 	init_units ();
 	init_selectbox ();
+	init_destimg ();
 
 	while (1) {
 		process_input ();
