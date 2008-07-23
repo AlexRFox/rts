@@ -49,3 +49,14 @@ draw_text (char *string, TTF_Font *font, double x, double y, Uint32 color)
 	SDL_BlitSurface (text, NULL, screen, &destination);
 	SDL_FreeSurface (text);
 }
+
+void
+draw_blit (SDL_Surface *image, int x, int y)
+{
+	SDL_Rect dest;
+
+	dest.x = x;
+	dest.y = y;
+
+	SDL_BlitSurface (image, NULL, screen, &dest);
+}

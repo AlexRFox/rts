@@ -80,7 +80,7 @@ void
 init_selectbox (void)
 {
 	selectbox.drawing = 0;
-	selectbox.color = 0x00ff00ff;
+	selectbox.color = 0x0000ffff;
 }
 
 void
