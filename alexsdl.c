@@ -49,19 +49,3 @@ draw_text (char *string, TTF_Font *font, double x, double y, Uint32 color)
 	SDL_BlitSurface (text, NULL, screen, &destination);
 	SDL_FreeSurface (text);
 }
-
-void
-rect_def (struct rect *rect, double x, double y, double h, double w, Uint32 color)
-{
-	rect->x = x;
-	rect->y = y;
-	rect->h = h;
-	rect->w = w;
-	rect->color = color;
-	rect->top = y;
-	rect->bottom = y + h;
-	rect->left = x;
-	rect->right = x + w;
-	rect->middle_x = x + w / 2;
-	rect->middle_y = y + h / 2;
-}

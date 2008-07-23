@@ -16,12 +16,20 @@ struct unit {
 	struct unit *next;
 	double x, y, h, w, center_x, center_y;
 	double top, bottom, left, right;
-	double vel_x, vel_y, moveto_x, moveto_y, moving;
+	double vel_x, vel_y, moveto_x, moveto_y, moving, selected;
 	double lasttime;
 	Uint32 color;
 };
 
-struct unit *selection, *first_unit, *last_unit;
+struct unit *first_unit, *last_unit;
+
+struct rect {
+	double x1, y1, x2, y2;
+	double drawing;
+	Uint32 color;
+};
+
+struct rect selectbox;
 
 void
 unit_def (struct unit *up)
@@ -69,17 +77,39 @@ init_units (void)
 }
 
 void
+init_selectbox (void)
+{
+	selectbox.drawing = 0;
+	selectbox.color = 0x00ff00ff;
+}
+
+void
 selecting (void)
 {
 	struct unit *up;
 
 	if (mousebutton[1]) {
+		if (selectbox.drawing == 0) {
+			selectbox.drawing = 1;
+			selectbox.x1 = mouse_x;
+			selectbox.y1 = mouse_y;
+			selectbox.x2 = mouse_x;
+			selectbox.y2 = mouse_y;
+		} else {
+			selectbox.x2 = mouse_x;
+			selectbox.y2 = mouse_y;
+		}
 		for (up = first_unit; up; up = up->next) {
 			if (mouse_x >= up->left && mouse_x <= up->right
 			    && mouse_y >= up->top && mouse_y <= up->bottom) {
-				selection = up;
+				up->selected = 1;
+			} else {
+				up->selected = 0;
 			}
 		}
+	}
+	if (mousebutton[1] == 0) {
+		selectbox.drawing = 0;
 	}
 }
 
@@ -87,15 +117,18 @@ void
 destination (void)
 {
 	double now;
+	struct unit *up;
 	
 	if (mousebutton[3]) {
-		if (selection) {
-			now = get_secs();
-			
-			selection->moveto_x = mouse_x;
-			selection->moveto_y = mouse_y;
-			selection->lasttime = now;
-			selection->moving = 1;
+		for (up = first_unit; up; up = up->next) {
+			if (up->selected) {
+				now = get_secs();
+				
+				up->moveto_x = mouse_x;
+				up->moveto_y = mouse_y;
+				up->lasttime = now;
+				up->moving = 1;
+			}
 		}
 	}
 }
@@ -193,11 +226,15 @@ draw (void)
 	for (up = first_unit; up; up = up->next) {
 		boxColor (screen, up->left, up->top, up->right, up->bottom,
 			  up->color);
-		if (selection == up) {
+		if (up->selected == 1) {
 			rectangleColor (screen, up->x - 3, up->y - 3,
 					up->x + up->w + 3, up->y + up->h +3,
 					up->color);
 		}
+	}
+	if (selectbox.drawing) {
+		rectangleColor (screen, selectbox.x1, selectbox.y1,
+				selectbox.x2, selectbox.y2, selectbox.color);
 	}
 }
 
@@ -237,6 +274,7 @@ main (int argc, char **argv)
 	alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
 
 	init_units ();
+	init_selectbox ();
 
 	while (1) {
 		process_input ();
