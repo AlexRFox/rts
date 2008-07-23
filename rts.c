@@ -101,6 +101,25 @@ check_direction (struct rect *sp)
 	}
 }
 
+int
+select_check (double left, double right, double top, double bottom)
+{
+	struct unit *up;
+	double collide;
+
+	for (up = first_unit; up; up = up->next) {
+		if (right < up->left
+		    || left > up->right
+		    || top > up->bottom
+		    || bottom < up->top) {
+			up->selected = 0;
+		} else {
+			up->selected = 1;
+		}
+	}
+	return (collide);
+}
+
 void
 selecting (void)
 {
@@ -122,44 +141,20 @@ selecting (void)
 		for (up = first_unit; up; up = up->next) {
 			switch (selectbox.direction) {
 			case 1:
-				if (up->center_x >= selectbox.x2
-				    && up->center_x <= selectbox.x1
-				    && up->center_y >= selectbox.y2
-				    && up->center_y <= selectbox.y1) {
-					up->selected = 1;
-				} else {
-					up->selected = 0;
-				}
+				select_check (selectbox.x2, selectbox.x1,
+					      selectbox.y2, selectbox.y1);
 				break;
 			case 2:
-				if (up->center_x >= selectbox.x1
-				    && up->center_x <= selectbox.x2
-				    && up->center_y >= selectbox.y2
-				    && up->center_y <= selectbox.y1) {
-					up->selected = 1;
-				} else {
-					up->selected = 0;
-				}
+				select_check (selectbox.x1, selectbox.x2,
+					      selectbox.y2, selectbox.y1);
 				break;
 			case 3:
-				if (up->center_x >= selectbox.x2
-				    && up->center_x <= selectbox.x1
-				    && up->center_y >= selectbox.y1
-				    && up->center_y <= selectbox.y2) {
-					up->selected = 1;
-				} else {
-					up->selected = 0;
-				}
+				select_check (selectbox.x2, selectbox.x1,
+					      selectbox.y1, selectbox.y2);
 				break;
 			case 4:
-				if (up->center_x >= selectbox.x1
-				    && up->center_x <= selectbox.x2
-				    && up->center_y >= selectbox.y1
-				    && up->center_y <= selectbox.y2) {
-					up->selected = 1;
-				} else {
-					up->selected = 0;
-				}
+				select_check (selectbox.x1, selectbox.x2,
+					      selectbox.y1, selectbox.y2);
 				break;
 			}
 		}
@@ -188,7 +183,6 @@ destination (void)
 		}
 	}
 }
-
 
 int
 collision_x (struct unit *up1)
