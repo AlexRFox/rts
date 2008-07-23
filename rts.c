@@ -25,7 +25,7 @@ struct unit *first_unit, *last_unit;
 
 struct rect {
 	double x1, y1, x2, y2;
-	double drawing;
+	int drawing, direction;
 	Uint32 color;
 };
 
@@ -84,6 +84,24 @@ init_selectbox (void)
 }
 
 void
+check_direction (struct rect *sp)
+{
+	if (sp->x1 > sp->x2) {
+		if (sp->y1 > sp->y2) {
+			sp->direction = 1;
+		} else {
+			sp->direction = 3;
+		}
+	} else {
+		if (sp->y1 > sp->y2) {
+			sp->direction = 2;
+		} else {
+			sp->direction = 4;
+		}
+	}
+}
+
+void
 selecting (void)
 {
 	struct unit *up;
@@ -95,16 +113,54 @@ selecting (void)
 			selectbox.y1 = mouse_y;
 			selectbox.x2 = mouse_x;
 			selectbox.y2 = mouse_y;
+			check_direction (&selectbox);
 		} else {
 			selectbox.x2 = mouse_x;
 			selectbox.y2 = mouse_y;
+			check_direction (&selectbox);
 		}
 		for (up = first_unit; up; up = up->next) {
-			if (mouse_x >= up->left && mouse_x <= up->right
-			    && mouse_y >= up->top && mouse_y <= up->bottom) {
-				up->selected = 1;
-			} else {
-				up->selected = 0;
+			switch (selectbox.direction) {
+			case 1:
+				if (up->center_x >= selectbox.x2
+				    && up->center_x <= selectbox.x1
+				    && up->center_y >= selectbox.y2
+				    && up->center_y <= selectbox.y1) {
+					up->selected = 1;
+				} else {
+					up->selected = 0;
+				}
+				break;
+			case 2:
+				if (up->center_x >= selectbox.x1
+				    && up->center_x <= selectbox.x2
+				    && up->center_y >= selectbox.y2
+				    && up->center_y <= selectbox.y1) {
+					up->selected = 1;
+				} else {
+					up->selected = 0;
+				}
+				break;
+			case 3:
+				if (up->center_x >= selectbox.x2
+				    && up->center_x <= selectbox.x1
+				    && up->center_y >= selectbox.y1
+				    && up->center_y <= selectbox.y2) {
+					up->selected = 1;
+				} else {
+					up->selected = 0;
+				}
+				break;
+			case 4:
+				if (up->center_x >= selectbox.x1
+				    && up->center_x <= selectbox.x2
+				    && up->center_y >= selectbox.y1
+				    && up->center_y <= selectbox.y2) {
+					up->selected = 1;
+				} else {
+					up->selected = 0;
+				}
+				break;
 			}
 		}
 	}
