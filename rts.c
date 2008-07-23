@@ -16,7 +16,7 @@ struct unit {
 	struct unit *next;
 	double x, y, h, w, center_x, center_y;
 	double top, bottom, left, right;
-	double vel_x, vel_y, moveto_x, moveto_y, moving;
+	double mov_x, mov_y, moveto_x, moveto_y, moving;
 	double lasttime;
 	Uint32 color;
 };
@@ -42,7 +42,11 @@ init_units (void)
 	unit_x = 200;
 	unit_y = 240;
 
+<<<<<<< HEAD:rts.c
 	for (units = 0; units <= 2; units++) {
+=======
+	for (units = 0; units < 3; units++) {
+>>>>>>> 1f9c0dd350b7e3c387081ce820f35114e5af51ec:rts.c
 		struct unit *up;
 		up = xcalloc (1, sizeof *up);
 
@@ -62,7 +66,7 @@ init_units (void)
 		unit_def (up);
 		up->moveto_x = up->center_x;
 		up->moveto_y = up->center_y;
-		up->lasttime = get_secs();
+		up->lasttime = get_secs ();
 		up->moving = 0;
 		unit_x += 100;
 	}
@@ -111,6 +115,7 @@ collision_x (struct unit *up1)
 		if (up2 == up1) {
 			continue;
 		}
+<<<<<<< HEAD:rts.c
 		if (up1->right + up1->vel_x < up2->left
 		    || up1->left + up1->vel_x > up2->right
 		    || up1->top > up2->bottom
@@ -118,7 +123,21 @@ collision_x (struct unit *up1)
 			collide = 0;
 		} else {
 			return (1);
+=======
+		if (up1->right + up1->mov_x < up2->left) {
+			return (0);
 		}
+		if (up1->left + up1->mov_x > up2->right) {
+			return (0);
+		}
+		if (up1->top > up2->bottom) {
+			return (0);
+		}
+		if (up1->bottom < up2->top) {
+			return (0);
+>>>>>>> 1f9c0dd350b7e3c387081ce820f35114e5af51ec:rts.c
+		}
+		return (1);
 	}
 	return (collide);
 }
@@ -133,6 +152,7 @@ collision_y (struct unit *up1)
 		if (up2 == up1) {
 			continue;
 		}
+<<<<<<< HEAD:rts.c
 		if (up1->top + up1->vel_y > up2->bottom
 		    || up1->bottom + up1->vel_y < up2->top
 		    || up1->right < up2->left
@@ -140,7 +160,21 @@ collision_y (struct unit *up1)
 			collide = 0;
 		} else {
 			return (1);
+=======
+		if (up1->top + up1->mov_y > up2->bottom) {
+			return (0);
 		}
+		if (up1->bottom + up1->mov_y < up2->top) {
+			return (0);
+		}
+		if (up1->left > up2->right) {
+			return (0);
+		}
+		if (up1->right < up2->left) {
+			return (0);
+>>>>>>> 1f9c0dd350b7e3c387081ce820f35114e5af51ec:rts.c
+		}
+		return (1);
 	}
 	return (collide);
 }
@@ -161,23 +195,23 @@ moving (void)
 			
 			dt = now - up->lasttime;
 			
-			up->vel_x = SPEED * dt * cos (theta);
-			up->vel_y = SPEED * dt * sin (theta);
+			up->mov_x = SPEED * dt * cos (theta);
+			up->mov_y = SPEED * dt * sin (theta);
 			
-			if (fabs (up->vel_x) > fabs (dx)
-			    && fabs (up->vel_y) > fabs (dy)) {
+			if (fabs (up->mov_x) > fabs (dx)
+			    && fabs (up->mov_y) > fabs (dy)) {
 				up->x = up->moveto_x - up->w / 2;
 				up->y = up->moveto_y - up->h / 2;
 				up->moving = 0;
 			} else {
 				if (collision_x (up)) {
-					up->vel_x = 0;
+					up->mov_x = 0;
 				}
-				up->x += up->vel_x;
+				up->x += up->mov_x;
 				if (collision_y (up)) {
-					up->vel_y = 0;
+					up->mov_y = 0;
 				}
-				up->y += up->vel_y;
+				up->y += up->mov_y;
 			}
 			
 			up->lasttime = now;
