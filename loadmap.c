@@ -75,10 +75,7 @@ init_pathblock (void)
 void
 init_units (void)
 {
-	double units, unit_x, unit_y;
-
-	unit_x = 200;
-	unit_y = 240;
+	double units;
 
 	for (units = 0; units < 1; units++) {
 		struct unit *up;
@@ -92,17 +89,16 @@ init_units (void)
 
 		last_unit = up;
 
-		up->x = unit_x;
-		up->y = unit_y;
-		up->h = 20;
 		up->w = 40;
+		up->h = 20;
+		up->x = WIDTH / 2 - up->w / 2;
+		up->y = HEIGHT / 2 - up->h / 2;
 		up->color = 0x00ff00ff;
 		unit_def (up, NULL);
 		up->moveto_x = up->center_x;
 		up->moveto_y = up->center_y;
 		up->lasttime = get_secs();
 		up->moving = 0;
-		unit_x += 200;
 	}
 }
 

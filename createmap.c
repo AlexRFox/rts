@@ -33,10 +33,10 @@ init_stuff (void)
 	placeblock.h = 20;
 	placeblock.w = 20;
 
-	unit.x = WIDTH / 2;
-	unit.y = HEIGHT / 2;
 	unit.w = 40;
 	unit.h = 20;
+	unit.x = WIDTH / 2 - unit.w / 2;
+	unit.y = HEIGHT / 2 - unit.h / 2;
 	unit.color = 0x00ff00ff;
 	unit_def (&unit);
 }
@@ -75,29 +75,31 @@ check_space (void)
 	unit_def (&placeblock);
 	placeblock.canplace = 1;
 	placeblock.color = 0x00ff0077;
-/*
-	if (placeblock.left > unit.right && placeblock.right < unit.left
-	    && placeblock.top > unit.bottom && placeblock.bottom < unit.top) {
+
+	if (placeblock.left > unit.right || placeblock.right < unit.left
+	    || placeblock.top > unit.bottom || placeblock.bottom < unit.top) {
 		placeblock.color = 0x00ff0077;
 		placeblock.canplace = 1;
 	} else {
 		placeblock.color = 0xff000077;
 		placeblock.canplace = 0;
 	}
-*/
-	for (pp = first_pathblock; pp; pp = pp->next) {
-		if (placeblock.left > pp->right
-		    && placeblock.right < pp->left
-		    && placeblock.top > pp->bottom
-		    && placeblock.bottom < pp->top) {
-			placeblock.color = 0x00ff0077;
-			placeblock.canplace = 1;
-		} else {
-			placeblock.color = 0xff000077;
-			placeblock.canplace = 0;
+
+	if (placeblock.canplace) {
+		for (pp = first_pathblock; pp; pp = pp->next) {
+			if (placeblock.left > pp->right
+			    || placeblock.right < pp->left
+			    || placeblock.top > pp->bottom
+			    || placeblock.bottom < pp->top) {
+				placeblock.color = 0x00ff0077;
+				placeblock.canplace = 1;
+			} else {
+				placeblock.color = 0xff000077;
+				placeblock.canplace = 0;
+				return;
+			}
 		}
 	}
-	printf ("%g\n", placeblock.canplace);
 }
 
 void
