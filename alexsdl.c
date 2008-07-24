@@ -51,6 +51,17 @@ draw_text (char *string, TTF_Font *font, double x, double y, Uint32 color)
 }
 
 void
+load_blit (SDL_Surface **image, char *string)
+{
+	*image = SDL_DisplayFormat (IMG_Load (string));
+	if (image == NULL) {
+		printf ("WAAAA! Image didn't load!\n");
+		exit (1);
+	}
+	SDL_SetColorKey (*image, SDL_SRCCOLORKEY, 0xff00ff);
+}
+
+void
 draw_blit (SDL_Surface *image, int x, int y)
 {
 	SDL_Rect dest;

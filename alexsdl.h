@@ -13,4 +13,6 @@ int alexttf_init (char *setfont, double fontsize);
 
 void draw_text (char *string, TTF_Font *font, double x, double y, Uint32 color);
 
+void load_blit (SDL_Surface **image, char *string);
+
 void draw_blit (SDL_Surface *image, int x, int y);

@@ -39,27 +39,114 @@ struct dest {
 
 struct dest destimg;
 
+struct pathblock {
+	struct pathblock *next;
+	double x, y, h, w;
+	double top, bottom, left, right;
+	Uint32 color;
+};
+
+struct pathblock *first_pathblock, *last_pathblock;
+
+struct border {
+	struct border *next;
+	double x1, y1, x2, y2;
+};
+
+struct border *first_border, *last_border;
+
 void
-unit_def (struct unit *up)
+unit_def (struct unit *up, struct pathblock *pp)
 {
-	up->top = up->y;
-	up->bottom = up->y + up->h;
-	up->left = up->x;
-	up->right = up->x + up->w;
-	up->center_x = up->x + up->w / 2;
-	up->center_y = up->y + up->h / 2;
+	if (up) {
+		up->top = up->y;
+		up->bottom = up->y + up->h;
+		up->left = up->x;
+		up->right = up->x + up->w;
+		up->center_x = up->x + up->w / 2;
+		up->center_y = up->y + up->h / 2;
+	}
+	if (pp) {
+		pp->top = pp->y;
+		pp->bottom = pp->y + pp->h;
+		pp->left = pp->x;
+		pp->right = pp->x + pp->w;
+	}
 }
 
 void
-load_blit (SDL_Surface **img, char *string)
+init_border (void)
 {
-	*img = SDL_DisplayFormat
-		(IMG_Load (string));
-	if (img == NULL) {
-		printf ("WAAAA! Image didn't load!");
-		exit (1);
+	int borders;
+
+	for (borders = 0; borders < 4; borders++) {
+		struct border *bp;
+		bp = xcalloc (1, sizeof *bp);
+
+		if (first_border == NULL) {
+			first_border = bp;
+		} else {
+			last_border->next = bp;
+		}
+
+		last_border = bp;
+
+		switch (borders) {
+		case 0:
+			bp->x1 = 0;
+			bp->y1 = 0;
+			bp->x2 = 0;
+			bp->y2 = HEIGHT;
+			break;
+		case 1:
+			bp->x1 = WIDTH;
+			bp->y1 = 0;
+			bp->x2 = WIDTH;
+			bp->y2 = HEIGHT;
+			break;
+		case 2:
+			bp->x1 = 0;
+			bp->y1 = 0;
+			bp->x2 = WIDTH;
+			bp->y2 = 0;
+			break;
+		case 3:
+			bp->x1 = 0;
+			bp->y1 = HEIGHT;
+			bp->x2 = WIDTH;
+			bp->y2 = HEIGHT;
+			break;
+		}
 	}
-	SDL_SetColorKey (*img, SDL_SRCCOLORKEY, 0xff00ff);
+}
+
+void
+init_pathblock (void)
+{
+	double pathblocks, pathblock_x, pathblock_y;
+
+	pathblock_x = 300;
+	pathblock_y = 240;
+
+	for (pathblocks = 0; pathblocks <= 0; pathblocks++) {
+		struct pathblock *pp;
+		pp = xcalloc (1, sizeof *pp);
+
+		if (first_pathblock == NULL) {
+			first_pathblock = pp;
+		} else {
+			last_pathblock->next = pp;
+		}
+
+		last_pathblock = pp;
+
+		pp->x = pathblock_x;
+		pp->y = pathblock_y;
+		pp->h = 50;
+		pp->w = 50;
+		pp->color = 0x777777ff;
+		unit_def (NULL, pp);
+	}
 }
 
 void
@@ -70,7 +157,7 @@ init_units (void)
 	unit_x = 200;
 	unit_y = 240;
 
-	for (units = 0; units <= 2; units++) {
+	for (units = 0; units <= 1; units++) {
 		struct unit *up;
 		up = xcalloc (1, sizeof *up);
 
@@ -87,12 +174,12 @@ init_units (void)
 		up->h = 20;
 		up->w = 40;
 		up->color = 0x00ff00ff;
-		unit_def (up);
+		unit_def (up, NULL);
 		up->moveto_x = up->center_x;
 		up->moveto_y = up->center_y;
 		up->lasttime = get_secs();
 		up->moving = 0;
-		unit_x += 100;
+		unit_x += 200;
 	}
 }
 
@@ -120,6 +207,16 @@ init_destimg (void)
 	load_blit (&destimg.frames[6], "destination/frame06.png");
 	load_blit (&destimg.frames[7], "destination/frame07.png");
 	destimg.lasttime = now;
+}
+
+void
+run_inits (void)
+{
+	init_units ();
+	init_selectbox ();
+	init_destimg ();
+	init_pathblock ();
+	init_border ();
 }
 
 void
@@ -231,6 +328,7 @@ int
 collision_x (struct unit *up1)
 {
 	struct unit *up2;
+	struct pathblock *pp;
 	double collide;
 
 	for (up2 = first_unit; up2; up2 = up2->next) {
@@ -246,6 +344,16 @@ collision_x (struct unit *up1)
 			return (1);
 		}
 	}
+	for (pp = first_pathblock; pp; pp = pp->next) {
+		if (up1->right + up1->vel_x < pp->left
+		    || up1->left + up1->vel_x > pp->right
+		    || up1->top > pp->bottom
+		    || up1->bottom < pp->top) {
+			collide = 0;
+		} else {
+			return (1);
+		}
+	}
 	return (collide);
 }
 
@@ -253,6 +361,7 @@ int
 collision_y (struct unit *up1)
 {
 	struct unit *up2;
+	struct pathblock *pp;
 	double collide;
 
 	for (up2 = first_unit; up2; up2 = up2->next) {
@@ -263,6 +372,16 @@ collision_y (struct unit *up1)
 		    || up1->bottom + up1->vel_y < up2->top
 		    || up1->right < up2->left
 		    || up1->left > up2->right) {
+			collide = 0;
+		} else {
+			return (1);
+		}
+	}
+	for (pp = first_pathblock; pp; pp = pp->next) {
+		if (up1->top + up1->vel_y > pp->bottom
+		    || up1->bottom + up1->vel_y < pp->top
+		    || up1->right < pp->left
+		    || up1->left > pp->right) {
 			collide = 0;
 		} else {
 			return (1);
@@ -307,7 +426,7 @@ moving (void)
 			}
 			
 			up->lasttime = now;
-			unit_def (up);
+			unit_def (up, NULL);
 		}
 	}
 }
@@ -317,6 +436,7 @@ draw (void)
 {
 	double now, dt;
 	struct unit *up;
+	struct pathblock *pp;
 
 	now = get_secs ();
 
@@ -363,13 +483,21 @@ draw (void)
 		}
 	}
 
+	for (pp = first_pathblock; pp; pp = pp->next) {
+		boxColor (screen, pp->left, pp->top, pp->right, pp->bottom,
+			  pp->color);
+	}
+
 	for (up = first_unit; up; up = up->next) {
 		boxColor (screen, up->left, up->top, up->right, up->bottom,
 			  up->color);
 		if (up->selected == 1) {
-			rectangleColor (screen, up->x - 3, up->y - 3,
-					up->x + up->w + 3, up->y + up->h +3,
-					up->color);
+			circleColor (screen, up->center_x, up->center_y,
+				     hypot (up->h / 2, up->w / 2) + 3,
+				     0x00ff00ff);
+			aacircleColor (screen, up->center_x, up->center_y,
+				       hypot (up->h / 2, up->w / 2) + 3,
+				       0x00ff00ff);
 		}
 	}
 
@@ -414,9 +542,7 @@ main (int argc, char **argv)
 {
 	alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
 
-	init_units ();
-	init_selectbox ();
-	init_destimg ();
+	run_inits ();
 
 	while (1) {
 		process_input ();
