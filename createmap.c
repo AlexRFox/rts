@@ -7,6 +7,7 @@ enum {
 
 int mousebutton[10];
 double mouse_x, mouse_y;
+FILE *fp;
 
 struct pathblock {
 	struct pathblock *next;
@@ -118,13 +119,27 @@ draw (void)
 }
 
 void
+save_map (void)
+{
+	struct pathblock *pp;
+
+	for (pp = first_pathblock; pp; pp = pp->next) {
+		fprintf (fp, "%g, %g, %g, %g\n", pp->x, pp->y, pp->w, pp->h);
+	}
+	fclose (fp);
+	printf ("Map saved\n");
+}
+
+void
 process_input (void)
 {
 	SDL_Event event;
         int key;
+	SDLMod mod;
 
         while (SDL_PollEvent (&event)) {
                 key = event.key.keysym.sym;
+		mod = event.key.keysym.mod;
                 switch (event.type) {
                 case SDL_QUIT:
                         exit (0);
@@ -132,6 +147,15 @@ process_input (void)
                         if (key == SDLK_ESCAPE || key == 'q') {
                                 exit (0);
                         }
+                case SDL_KEYDOWN:
+			switch (key) {
+			case 's':
+				if (mod & KMOD_META) {
+					save_map ();
+					exit (0);
+				}
+				break;
+			}
                 case SDL_MOUSEBUTTONDOWN:
                         mousebutton[event.button.button] = 1;
 			place_pathblock ();
@@ -150,17 +174,27 @@ process_input (void)
 int
 main (int argc, char **argv)
 {
-	alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	if (argc == 2) {
+		printf ("Creating map: %s\n", argv[1]);
 
-	init_stuff ();
+		fp = fopen (argv[1], "w");
 
-	while (1) {
-		process_input ();
-		SDL_FillRect (screen, NULL, 0x000000);
-		check_space ();
-		draw ();
-		SDL_Flip (screen);
+		alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
+		
+		init_stuff ();
+		
+		while (1) {
+			process_input ();
+			SDL_FillRect (screen, NULL, 0x000000);
+			check_space ();
+			draw ();
+			SDL_Flip (screen);
+		}
+	} else {
+		printf ("Invalid input, input the name of a map to create.\n");
+		return (1);
 	}
+
 
 	return (0);
 }
