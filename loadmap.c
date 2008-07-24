@@ -70,41 +70,14 @@ unit_def (struct unit *up, struct pathblock *pp)
 void
 init_pathblock (void)
 {
-	double pathblocks, pathblock_x, pathblock_y;
-
-	pathblock_x = 300;
-	pathblock_y = 240;
-
-	for (pathblocks = 0; pathblocks <= 0; pathblocks++) {
-		struct pathblock *pp;
-		pp = xcalloc (1, sizeof *pp);
-
-		if (first_pathblock == NULL) {
-			first_pathblock = pp;
-		} else {
-			last_pathblock->next = pp;
-		}
-
-		last_pathblock = pp;
-
-		pp->x = pathblock_x;
-		pp->y = pathblock_y;
-		pp->h = 50;
-		pp->w = 50;
-		pp->color = 0x777777ff;
-		unit_def (NULL, pp);
-	}
 }
 
 void
 init_units (void)
 {
-	double units, unit_x, unit_y;
+	double units;
 
-	unit_x = 200;
-	unit_y = 240;
-
-	for (units = 0; units <= 1; units++) {
+	for (units = 0; units < 1; units++) {
 		struct unit *up;
 		up = xcalloc (1, sizeof *up);
 
@@ -116,17 +89,10 @@ init_units (void)
 
 		last_unit = up;
 
-		up->x = unit_x;
-		up->y = unit_y;
 		up->h = 20;
 		up->w = 40;
 		up->color = 0x00ff00ff;
-		unit_def (up, NULL);
-		up->moveto_x = up->center_x;
-		up->moveto_y = up->center_y;
-		up->lasttime = get_secs();
 		up->moving = 0;
-		unit_x += 200;
 	}
 }
 
@@ -163,6 +129,21 @@ run_inits (void)
 	init_selectbox ();
 	init_destimg ();
 	init_pathblock ();
+}
+
+void
+set_unit (double x, double y)
+{
+	double now;
+	struct unit *up;
+
+	for (up = first_unit; up; up = up->next) {
+		now = get_secs ();
+		up->x = x - up->w;
+		up->y = y - up->h;
+		up->lasttime = now;
+		unit_def (up);
+	}
 }
 
 void

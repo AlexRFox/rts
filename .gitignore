@@ -1,3 +1,5 @@
 *~
 *.o
 rts
+baserts
+loadmap

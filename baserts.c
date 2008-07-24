@@ -70,7 +70,7 @@ unit_def (struct unit *up, struct pathblock *pp)
 void
 init_pathblock (void)
 {
-	double pathblocks, pathblock_x, pathblock_y;
+/*	double pathblocks, pathblock_x, pathblock_y;
 
 	pathblock_x = 300;
 	pathblock_y = 240;
@@ -94,6 +94,7 @@ init_pathblock (void)
 		pp->color = 0x777777ff;
 		unit_def (NULL, pp);
 	}
+*/
 }
 
 void
