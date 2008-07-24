@@ -75,7 +75,10 @@ init_pathblock (void)
 void
 init_units (void)
 {
-	double units;
+	double units, unit_x, unit_y;
+
+	unit_x = 200;
+	unit_y = 240;
 
 	for (units = 0; units < 1; units++) {
 		struct unit *up;
@@ -89,10 +92,17 @@ init_units (void)
 
 		last_unit = up;
 
+		up->x = unit_x;
+		up->y = unit_y;
 		up->h = 20;
 		up->w = 40;
 		up->color = 0x00ff00ff;
+		unit_def (up, NULL);
+		up->moveto_x = up->center_x;
+		up->moveto_y = up->center_y;
+		up->lasttime = get_secs();
 		up->moving = 0;
+		unit_x += 200;
 	}
 }
 
@@ -129,21 +139,6 @@ run_inits (void)
 	init_selectbox ();
 	init_destimg ();
 	init_pathblock ();
-}
-
-void
-set_unit (double x, double y)
-{
-	double now;
-	struct unit *up;
-
-	for (up = first_unit; up; up = up->next) {
-		now = get_secs ();
-		up->x = x - up->w;
-		up->y = y - up->h;
-		up->lasttime = now;
-		unit_def (up);
-	}
 }
 
 void
@@ -257,6 +252,8 @@ collision_x (struct unit *up1)
 	struct unit *up2;
 	struct pathblock *pp;
 	double collide;
+
+	collide = 0;
 
 	if (up1->left + up1->mov_x <= 0 || up1->right + up1->mov_x >= WIDTH) {
 		return (1);

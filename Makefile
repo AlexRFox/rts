@@ -10,6 +10,9 @@ baserts: baserts.o alexsdl.o alex.o
 loadmap: loadmap.o alexsdl.o alex.o
 	$(CC) $(CFLAGS) -o loadmap loadmap.o alexsdl.o alex.o $(LIBS)
 
+createmap: createmap.o alexsdl.o alex.o
+	$(CC) $(CFLAGS) -o createmap createmap.o alexsdl.o alex.o $(LIBS)
+
 clean:
 	rm *~
 	rm *.o
