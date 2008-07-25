@@ -11,6 +11,7 @@ enum {
 
 int mousebutton[10];
 double mouse_x, mouse_y;
+FILE *fp;
 
 struct unit {
 	struct unit *next;
@@ -70,6 +71,36 @@ unit_def (struct unit *up, struct pathblock *pp)
 void
 init_pathblock (void)
 {
+	struct pathblock *pp;
+	char c, line[1000];
+	int x, y, w, h;
+
+	c = getc (fp);
+	
+	while (c != EOF) {
+		ungetc (c, fp);
+		fgets (line, sizeof line, fp);
+
+		pp = xcalloc (1, sizeof *pp);
+		if (first_pathblock == NULL) {
+			first_pathblock = pp;
+		} else {
+			last_pathblock->next = pp;
+		}
+
+		last_pathblock = pp;
+
+		sscanf (line, "%d, %d, %d, %d", &x, &y, &w, &h);
+
+		pp->w = w;
+		pp->h = h;
+		pp->x = x;
+		pp->y = y;
+		pp->color = 0x777777ff;
+		unit_def (NULL, pp);
+
+		c = getc (fp);
+	}
 }
 
 void
@@ -466,17 +497,24 @@ process_input (void)
 int
 main (int argc, char **argv)
 {
-	alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
-
-	run_inits ();
-
-	while (1) {
-		process_input ();
-		SDL_FillRect (screen, NULL, 0x000000);
-		selecting ();
-		moving ();
-		draw ();
-		SDL_Flip (screen);
+	if (argc == 2) {
+		fp = fopen (argv[1], "r");
+		
+		alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
+		
+		run_inits ();
+		
+		while (1) {
+			process_input ();
+			SDL_FillRect (screen, NULL, 0x000000);
+			selecting ();
+			moving ();
+			draw ();
+			SDL_Flip (screen);
+		}
+	} else {
+		printf ("Invalid input\n");
+		return (1);
 	}
 
 	return (0);

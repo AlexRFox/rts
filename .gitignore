@@ -1,5 +1,6 @@
 *~
 *.o
+*.rtsmap
 rts
 baserts
 loadmap

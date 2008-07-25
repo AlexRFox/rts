@@ -174,10 +174,14 @@ process_input (void)
 int
 main (int argc, char **argv)
 {
-	if (argc == 2) {
-		printf ("Creating map: %s\n", argv[1]);
+	char mapname[1000];
 
-		fp = fopen (argv[1], "w");
+	if (argc == 2) {
+		sprintf (mapname, "%s.rtsmap", argv[1]);
+
+		printf ("Creating map: %s\n", mapname);
+
+		fp = fopen (mapname, "w");
 
 		alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
 		
