@@ -13,6 +13,9 @@ loadmap: loadmap.o alexsdl.o alex.o
 createmap: createmap.o alexsdl.o alex.o
 	$(CC) $(CFLAGS) -o createmap createmap.o alexsdl.o alex.o $(LIBS)
 
+fightingrts: fightingrts.o alexsdl.o alex.o
+	$(CC) $(CFLAGS) -o fightingrts fightingrts.o alexsdl.o alex.o $(LIBS)
+
 clean:
 	rm *~
 	rm *.o

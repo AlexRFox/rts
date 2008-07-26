@@ -48,21 +48,23 @@ place_pathblock (void)
 	struct pathblock *pp;
 	pp = xcalloc (1, sizeof *pp);
 
-	if (placeblock.canplace) {
-		if (first_pathblock == NULL) {
-			first_pathblock = pp;
-		} else {
-			last_pathblock->next = pp;
+	if (mousebutton[1]) {
+		if (placeblock.canplace) {
+			if (first_pathblock == NULL) {
+				first_pathblock = pp;
+			} else {
+				last_pathblock->next = pp;
+			}
+			
+			last_pathblock = pp;
+			
+			pp->w = 20;
+			pp->h = 20;
+			pp->x = mouse_x - pp->w / 2;
+			pp->y = mouse_y - pp->h / 2;
+			pp->color = 0x777777ff;
+			unit_def (pp);
 		}
-		
-		last_pathblock = pp;
-		
-		pp->w = 20;
-		pp->h = 20;
-		pp->x = mouse_x - pp->w / 2;
-		pp->y = mouse_y - pp->h / 2;
-		pp->color = 0x777777ff;
-		unit_def (pp);
 	}
 }
 
@@ -152,13 +154,12 @@ process_input (void)
 			case 's':
 				if (mod & KMOD_META) {
 					save_map ();
-					exit (0);
+					exit (1);
 				}
-				break;
 			}
+			break;
                 case SDL_MOUSEBUTTONDOWN:
                         mousebutton[event.button.button] = 1;
-			place_pathblock ();
                         break;
                 case SDL_MOUSEBUTTONUP:
                         mousebutton[event.button.button] = 0;
@@ -191,6 +192,7 @@ main (int argc, char **argv)
 			process_input ();
 			SDL_FillRect (screen, NULL, 0x000000);
 			check_space ();
+			place_pathblock ();
 			draw ();
 			SDL_Flip (screen);
 		}
