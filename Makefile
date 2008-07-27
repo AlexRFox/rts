@@ -16,6 +16,9 @@ createmap: createmap.o alexsdl.o alex.o
 fightingrts: fightingrts.o alexsdl.o alex.o
 	$(CC) $(CFLAGS) -o fightingrts fightingrts.o alexsdl.o alex.o $(LIBS)
 
+rtsserver: rtsserver.o alex.o alexether.o
+	$(CC) $(CFLAGS) -o rtsserver rtsserver.o alex.o alexether.o $(LIBS)
+
 clean:
 	rm *~
 	rm *.o

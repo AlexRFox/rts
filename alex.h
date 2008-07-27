@@ -4,6 +4,8 @@
 #include <time.h>
 #include <sys/time.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 void * xcalloc (int a, int b);
 
