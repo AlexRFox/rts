@@ -7,6 +7,7 @@ enum {
 
 int mousebutton[10];
 double mouse_x, mouse_y;
+char mapname[1000];
 FILE *fp;
 
 struct pathblock {
@@ -147,12 +148,15 @@ process_input (void)
                         exit (0);
                 case SDL_KEYUP:
                         if (key == SDLK_ESCAPE || key == 'q') {
-                                exit (0);
+				if (remove (mapname) != 0) {
+				        printf ("error deleting file\n");
+				}
+				exit (0);
                         }
                 case SDL_KEYDOWN:
 			switch (key) {
 			case 's':
-				if (mod & KMOD_META) {
+				if (mod & KMOD_CTRL) {
 					save_map ();
 					exit (1);
 				}
@@ -175,8 +179,6 @@ process_input (void)
 int
 main (int argc, char **argv)
 {
-	char mapname[1000];
-
 	if (argc == 2) {
 		sprintf (mapname, "%s.rtsmap", argv[1]);
 
@@ -186,6 +188,8 @@ main (int argc, char **argv)
 
 		alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
 		
+		SDL_WM_SetCaption ("RTS createmap", NULL);
+
 		init_stuff ();
 		
 		while (1) {
@@ -197,7 +201,7 @@ main (int argc, char **argv)
 			SDL_Flip (screen);
 		}
 	} else {
-		printf ("Invalid input, input the name of a map to create.\n");
+		printf ("usage: createmap mapname\n");
 		return (1);
 	}
 

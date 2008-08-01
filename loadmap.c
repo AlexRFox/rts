@@ -502,6 +502,8 @@ main (int argc, char **argv)
 		
 		alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
 		
+		SDL_WM_SetCaption ("RTS loadmap", NULL);
+
 		run_inits ();
 		
 		while (1) {
