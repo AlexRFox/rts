@@ -15,12 +15,7 @@ struct player {
 	char player_ip[20];
 };
 
-struct packet {
-	char str[1024];
-	int playernum;
-};
-
-struct player *first_player, *last_player, *sending_player;
+struct player *first_player, *last_player, *sp;
 
 struct player*
 idplayer (struct sockaddr_in *ca)
@@ -65,6 +60,7 @@ createplayer (struct sockaddr_in *ca)
 
 	pn = 0;
 	now = get_secs ();
+	msg[0] = 0;
 
 	pp = xcalloc (1, sizeof *pp);
 	if (first_player == NULL) {
@@ -78,14 +74,12 @@ createplayer (struct sockaddr_in *ca)
 					printf ("client failed to join, ip "
 						"already in use\n");
 					pl->lastpong = now;
-					sendpacket (msg, ca);
 					return;
 				} else {
 					sprintf (msg, "player %g joined\n",
 						pl->playernum);
 					pl->lastpong = now;
 					numofplayers++;
-					sendtoall (msg);
 					return;
 				}
 			}
@@ -100,26 +94,6 @@ createplayer (struct sockaddr_in *ca)
 	pp->lastpong = now;
 
 	sprintf (msg, "player %g joined\n", pp->playernum);
-
-	sendtoall (msg);
-}
-
-void
-rmplayer (struct sockaddr_in *ca)
-{
-	char msg[1024];
-	struct player *pp;
-
-	for (pp = first_player; pp; pp = pp->next) {
-		if (pp->ca.sin_addr.s_addr == ca->sin_addr.s_addr) {
-			pp->joined = 0;
-			numofplayers--;
-			sprintf (msg, "player %g has left\n", pp->playernum);
-			sendtoall (msg);
-			return;
-		}
-	}
-	printf ("failed to remove player\n");
 }
 
 int
@@ -127,6 +101,7 @@ main (int argc, char **argv)
 {
 	struct sockaddr_in sa, ca;
 	double now;
+	char c, line[1024];
 
 	mode = 0;
 	numofplayers = 0;
@@ -136,7 +111,6 @@ main (int argc, char **argv)
 		printf ("usage: rtsserver mapname.rtsmap\n");
 		return (1);
 	}
-	char c, line[1024];
 	
 	fp = fopen (argv[1], "r");
 		
@@ -178,9 +152,9 @@ main (int argc, char **argv)
 				numofplayers++;
 			}
 
-			if ((sending_player = idplayer (&ca)) == NULL) {
+			if ((sp = idplayer (&ca)) == NULL) {
 				createplayer (&ca);
-				if ((sending_player = idplayer (&ca))
+				if ((sp = idplayer (&ca))
 				    == NULL) {
 					printf ("unable to id player, "
 						"and/or failed to create\n");
@@ -191,15 +165,35 @@ main (int argc, char **argv)
 			switch (mode) {
 			case 0:
 				if (strcmp (buff, "join request\n") == 0) {
-					sending_player->joined = 1;
-					sprintf (msg, "player %g joined\n",
-						sending_player->playernum);
-					sendtoall (msg);
+					if (sp->joined == 0) {
+						sp->joined = 1;
+						sprintf (msg, "player %g "
+							 "joined\n",
+							 sp->playernum);
+						sendtoall (msg);
+					} else {
+						printf ("player %g already "
+							"joined\n",
+							sp->playernum);
+						sprintf (msg, "you have "
+							 "already joined\n");
+						sendpacket (msg, &(sp->ca));
+					}
 				} else if (strcmp (buff, "leaving\n") == 0) {
-					sending_player->joined = 0;
-					sprintf (msg, "player %g left\n",
-						sending_player->playernum);
-					sendtoall (msg);
+					if (sp->joined == 1) {
+						sp->joined = 0;
+						sprintf (msg, "player %g "
+							 "left\n",
+							 sp->playernum);
+						sendtoall (msg);
+					} else {
+						printf ("player %g already "
+							"left\n",
+							sp->playernum);
+						sprintf (msg, "you have "
+							 "already left\n");
+						sendpacket (msg, &(sp->ca));
+					}
 				} else if (strcmp (buff, "start game\n")
 					   == 0) {
 					mode = 1;
@@ -214,25 +208,24 @@ main (int argc, char **argv)
 				if (strcmp (buff, "base map request\n")
 				    == 0 ) {
 					c = getc (fp);
+					msg[0] = 0;
 
 					while (c != EOF) {
 						ungetc (c, fp);
 						fgets (line, sizeof line, fp);
 
-						msg[0] = 0;
 						
 						if (msg[0] == 0) {
 							sprintf (msg, "%s",
 								 line);
 						} else {
-							sprintf (msg,
-								 "%s\n%s",
+							sprintf (msg, "%s%s",
 								 msg, line);
 						}
 						c = getc (fp);
 					}
 					sendpacket (msg,
-						    &(sending_player->ca));
+						    &(sp->ca));
 					rewind (fp);
 				}
 				break;
