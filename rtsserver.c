@@ -2,7 +2,6 @@
 #include "alexether.h"
 
 #define PORT 9977
-#define PLAYERMAX 64
 
 int sock, port, mode, numofplayers;
 char msg[1024];
@@ -139,13 +138,20 @@ main (int argc, char **argv)
 	
 	while (1) {
 		char msg[1024], buff[1024];
-		int n;
+		int n, slen;
 		socklen_t ca_len;
 		usleep (1e4);
 		ca_len = sizeof (ca);
 		if ((n = recvfrom (sock, buff, sizeof buff - 1, 0,
-				   (struct sockaddr*) &ca, &ca_len)) >= 0) {
-			buff[n] = 0;
+				   (struct sockaddr*) &ca, &ca_len)) > 0) {
+
+			slen = strlen (buff) - 1;
+			while (slen > 0 && (isspace (buff[slen])) != 0) {
+				buff[slen] = 0;
+				slen--;
+			}
+
+			printf ("received packet: '%s'\n", buff);
 
 			if (numofplayers == 0) {
 				createplayer (&ca);
@@ -164,7 +170,7 @@ main (int argc, char **argv)
 
 			switch (mode) {
 			case 0:
-				if (strcmp (buff, "join request\n") == 0) {
+				if (strcmp (buff, "join request") == 0) {
 					if (sp->joined == 0) {
 						sp->joined = 1;
 						sprintf (msg, "player %g "
@@ -179,7 +185,7 @@ main (int argc, char **argv)
 							 "already joined\n");
 						sendpacket (msg, &(sp->ca));
 					}
-				} else if (strcmp (buff, "leaving\n") == 0) {
+				} else if (strcmp (buff, "leaving") == 0) {
 					if (sp->joined == 1) {
 						sp->joined = 0;
 						sprintf (msg, "player %g "
@@ -194,7 +200,7 @@ main (int argc, char **argv)
 							 "already left\n");
 						sendpacket (msg, &(sp->ca));
 					}
-				} else if (strcmp (buff, "start game\n")
+				} else if (strcmp (buff, "start game")
 					   == 0) {
 					mode = 1;
 					sendtoall ("play mode activated, "
@@ -205,7 +211,7 @@ main (int argc, char **argv)
 				}
 				break;
 			case 1:
-				if (strcmp (buff, "base map request\n")
+				if (strcmp (buff, "base map request")
 				    == 0 ) {
 					c = getc (fp);
 					msg[0] = 0;

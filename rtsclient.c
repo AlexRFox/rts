@@ -1,4 +1,5 @@
 #include "alexsdl.h"
+#include "alexether.h"
 
 enum {
 	WIDTH = 640,
@@ -9,9 +10,12 @@ enum {
 	SPEED = 100,
 };
 
-int mousebutton[10];
+int port, sock, mousebutton[10];
 double mouse_x, mouse_y;
 FILE *fp;
+
+struct hostent *hostlist;
+struct sockaddr_in sa;
 
 struct unit {
 	struct unit *next;
@@ -48,6 +52,16 @@ struct pathblock {
 };
 
 struct pathblock *first_pathblock, *last_pathblock;
+
+void
+sendpacket (char str[1024], struct sockaddr_in *sa)
+{
+	if (sendto (sock, str, strlen (str), 0,
+                    (struct sockaddr*) sa,
+                    sizeof *sa) < 0) {
+                fprintf (stderr, "error sending packet\n");
+        }
+}
 
 void
 unit_def (struct unit *up, struct pathblock *pp)
@@ -165,7 +179,9 @@ run_inits (void)
 	init_units ();
 	init_selectbox ();
 	init_destimg ();
-	init_pathblock ();
+	if (fp) {
+		init_pathblock ();
+	}
 }
 
 void
@@ -497,27 +513,84 @@ process_input (void)
 int
 main (int argc, char **argv)
 {
-	if (argc == 2) {
-		fp = fopen (argv[1], "r");
-		
-		alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
-		
-		SDL_WM_SetCaption ("RTS loadmap", NULL);
+	int n, mode, started_sdl, joined, slen;
+        char dotted_ip[15], msg[1024];
+	socklen_t sa_len;
 
-		run_inits ();
-		
-		while (1) {
+	joined = 0;
+	mode = 0;
+	started_sdl = 0;
+
+	if (argc < 3) {
+		printf ("usage: %s host port\n", argv[0]);
+		return (1);
+	}
+
+        hostlist = gethostbyname (argv[1]);
+        if (hostlist == NULL) {
+                fprintf (stderr, "unable to resolve %s\n", argv[1]);
+                return (1);
+        }
+        inet_ntop (AF_INET, hostlist->h_addr_list[0], dotted_ip, 15);
+
+        sock = socket (PF_INET, SOCK_DGRAM, IPPROTO_IP);
+        if (sock < 0) {
+                fprintf (stderr, "unable to create socket\n");
+                exit (1);
+        }
+
+        port = atoi (argv[2]);
+
+        memset (&sa, 0, sizeof sa);
+
+        sa.sin_family = AF_INET;
+
+        memcpy (&sa.sin_addr, hostlist->h_addr_list[0], hostlist->h_length);
+
+        sa.sin_port = htons (port);
+	
+	sendpacket ("join request", &sa);
+
+	while (1) {
+		switch (mode) {
+		case 0:
+			fgets (msg, sizeof msg, stdin);
+			if (sendto (sock, msg, strlen (msg) + 1, 0,
+				    (struct sockaddr*) &sa, sizeof (sa))
+			    <= (int) strlen (msg)) {
+				fprintf (stderr, "error sending packet\n");
+			}
+			sa_len = sizeof sa;
+			if ((n = recvfrom (sock, msg, sizeof msg - 1, 0,
+					   (struct sockaddr*) &sa, &sa_len))
+			    > 0) {
+				msg[n] = 0;
+				slen = strlen (msg) - 1;
+				while (slen > 0
+				       && (isspace (msg[slen])) != 0) {
+					msg[slen] = 0;
+					slen--;
+				}
+
+				printf ("received packet: '%s'\n", msg);
+			}
+			break;
+		case 1:
+			if (started_sdl == 0) {
+				alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE
+					      | SDL_DOUBLEBUF);	
+				SDL_WM_SetCaption ("RTS client", NULL);
+				run_inits ();
+				started_sdl = 1;
+			}
 			process_input ();
 			SDL_FillRect (screen, NULL, 0x000000);
 			selecting ();
 			moving ();
 			draw ();
 			SDL_Flip (screen);
+			break;
 		}
-	} else {
-		printf ("Invalid input\n");
-		return (1);
 	}
-
 	return (0);
 }

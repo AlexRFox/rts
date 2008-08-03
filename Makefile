@@ -19,6 +19,9 @@ fightingrts: fightingrts.o alexsdl.o alex.o
 rtsserver: rtsserver.o alex.o alexether.o
 	$(CC) $(CFLAGS) -o rtsserver rtsserver.o alex.o alexether.o $(LIBS)
 
+rtsclient: rtsclient.o alex.o alexsdl.o alexether.o
+	$(CC) $(CFLAGS) -o rtsclient rtsclient.o alex.o alexsdl.o alexether.o $(LIBS)
+
 clean:
 	rm *~
 	rm *.o
