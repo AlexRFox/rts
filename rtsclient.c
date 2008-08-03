@@ -551,15 +551,19 @@ main (int argc, char **argv)
 	
 	sendpacket ("join request", &sa);
 
+	if ((n = recvfrom (sock, msg, sizeof msg - 1, 0, (struct sockaddr*)
+			   &sa, &sa_len)) > 0) {
+		msg[n] = 0;
+		slen = strlen (msg) - 1;
+		while (slen > 0 && (isspace (msg[slen])) != 0) {
+			msg[slen] = 0;
+			slen--;
+		}
+	}
+
 	while (1) {
 		switch (mode) {
 		case 0:
-			fgets (msg, sizeof msg, stdin);
-			if (sendto (sock, msg, strlen (msg) + 1, 0,
-				    (struct sockaddr*) &sa, sizeof (sa))
-			    <= (int) strlen (msg)) {
-				fprintf (stderr, "error sending packet\n");
-			}
 			sa_len = sizeof sa;
 			if ((n = recvfrom (sock, msg, sizeof msg - 1, 0,
 					   (struct sockaddr*) &sa, &sa_len))
@@ -571,8 +575,14 @@ main (int argc, char **argv)
 					msg[slen] = 0;
 					slen--;
 				}
+			}
+			printf ("received packet: '%s'\n", msg);
 
-				printf ("received packet: '%s'\n", msg);
+			fgets (msg, sizeof msg, stdin);
+			if (sendto (sock, msg, strlen (msg) + 1, 0,
+				    (struct sockaddr*) &sa, sizeof (sa))
+			    <= (int) strlen (msg)) {
+				fprintf (stderr, "error sending packet\n");
 			}
 			break;
 		case 1:

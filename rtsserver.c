@@ -151,8 +151,6 @@ main (int argc, char **argv)
 				slen--;
 			}
 
-			printf ("received packet: '%s'\n", buff);
-
 			if (numofplayers == 0) {
 				createplayer (&ca);
 				numofplayers++;
@@ -167,6 +165,9 @@ main (int argc, char **argv)
 				}
 				numofplayers++;
 			}
+
+			printf ("received packet: '%s' from player %g\n",
+				buff, sp->playernum);
 
 			switch (mode) {
 			case 0:
@@ -185,7 +186,8 @@ main (int argc, char **argv)
 							 "already joined\n");
 						sendpacket (msg, &(sp->ca));
 					}
-				} else if (strcmp (buff, "leaving") == 0) {
+				} else if (strcasecmp (buff, "quit") == 0
+					   || strcasecmp (buff, "q") == 0) {
 					if (sp->joined == 1) {
 						sp->joined = 0;
 						sprintf (msg, "player %g "
@@ -207,7 +209,7 @@ main (int argc, char **argv)
 						   "joining no longer "
 						   "allowed\n");
 				} else {
-					printf ("invalid packet recieved\n");
+					printf ("invalid packet received\n");
 				}
 				break;
 			case 1:
@@ -233,6 +235,8 @@ main (int argc, char **argv)
 					sendpacket (msg,
 						    &(sp->ca));
 					rewind (fp);
+				} else {
+					printf ("invalid packet received\n");
 				}
 				break;
 			}
