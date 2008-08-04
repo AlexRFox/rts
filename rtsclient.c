@@ -614,8 +614,8 @@ main (int argc, char **argv)
 			}
 			if (strcasecmp (msg, "quit\n")
 			    || strcasecmp (msg, "q\n")) {
-				    return (0);
-			    }
+				return (0);
+			}
 		}
 /*			if (started_sdl == 0) {
 				alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE
