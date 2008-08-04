@@ -3,7 +3,7 @@
 
 #define PORT 9977
 
-int sock, port, mode, numofplayers;
+int sock, port, mode, numofplayers, keyboard_fd;
 char msg[1024];
 FILE *fp;
 
@@ -47,7 +47,9 @@ sendtoall (char str[1024])
 
 	printf (str);
 	for (pp = first_player; pp; pp = pp->next) {
-		sendpacket (str, &(pp->ca));
+		if (pp->joined) {
+			sendpacket (str, &(pp->ca));
+		}
 	}
 }
 
@@ -100,8 +102,10 @@ main (int argc, char **argv)
 {
 	struct sockaddr_in sa, ca;
 	double now;
-	char c, line[1024];
-
+	char c, line[1024], msg[1024], buff[1024];
+	int n, slen;
+	socklen_t ca_len;
+	
 	mode = 0;
 	numofplayers = 0;
 	now = get_secs ();
@@ -136,12 +140,10 @@ main (int argc, char **argv)
 	
 	printf ("listening for udp packets\n");
 	
+	ca_len = sizeof (ca);
+
 	while (1) {
-		char msg[1024], buff[1024];
-		int n, slen;
-		socklen_t ca_len;
 		usleep (1e4);
-		ca_len = sizeof (ca);
 		if ((n = recvfrom (sock, buff, sizeof buff - 1, 0,
 				   (struct sockaddr*) &ca, &ca_len)) > 0) {
 
@@ -221,7 +223,6 @@ main (int argc, char **argv)
 					while (c != EOF) {
 						ungetc (c, fp);
 						fgets (line, sizeof line, fp);
-
 						
 						if (msg[0] == 0) {
 							sprintf (msg, "%s",

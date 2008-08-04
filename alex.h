@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <sys/select.h>
 
 void * xcalloc (int a, int b);
 

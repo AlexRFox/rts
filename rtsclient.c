@@ -10,7 +10,7 @@ enum {
 	SPEED = 100,
 };
 
-int port, sock, mousebutton[10];
+int port, sock, keyboard_fd, mousebutton[10];
 double mouse_x, mouse_y;
 FILE *fp;
 
@@ -62,6 +62,8 @@ sendpacket (char str[1024], struct sockaddr_in *sa)
                 fprintf (stderr, "error sending packet\n");
         }
 }
+
+
 
 void
 unit_def (struct unit *up, struct pathblock *pp)
@@ -513,9 +515,11 @@ process_input (void)
 int
 main (int argc, char **argv)
 {
-	int n, mode, started_sdl, joined, slen;
+	struct timeval tv;
+	int n, mode, started_sdl, joined, slen, maxfd;
         char dotted_ip[15], msg[1024];
 	socklen_t sa_len;
+	fd_set rset;
 
 	joined = 0;
 	mode = 0;
@@ -534,6 +538,8 @@ main (int argc, char **argv)
         inet_ntop (AF_INET, hostlist->h_addr_list[0], dotted_ip, 15);
 
         sock = socket (PF_INET, SOCK_DGRAM, IPPROTO_IP);
+	keyboard_fd = 0;
+
         if (sock < 0) {
                 fprintf (stderr, "unable to create socket\n");
                 exit (1);
@@ -548,7 +554,9 @@ main (int argc, char **argv)
         memcpy (&sa.sin_addr, hostlist->h_addr_list[0], hostlist->h_length);
 
         sa.sin_port = htons (port);
-	
+
+	sa_len = sizeof sa;
+
 	sendpacket ("join request", &sa);
 
 	if ((n = recvfrom (sock, msg, sizeof msg - 1, 0, (struct sockaddr*)
@@ -562,9 +570,28 @@ main (int argc, char **argv)
 	}
 
 	while (1) {
-		switch (mode) {
-		case 0:
-			sa_len = sizeof sa;
+		FD_ZERO (&rset);
+		maxfd = 0;
+
+		FD_SET (sock, &rset);
+		if (sock > maxfd) {
+			maxfd = sock;
+		}
+
+		FD_SET (keyboard_fd, &rset);
+		if (keyboard_fd > maxfd) {
+			maxfd = keyboard_fd;
+		}
+
+		tv.tv_sec = 0;
+		tv.tv_usec = 30 * 1000;
+
+		if (select (maxfd + 1, &rset, NULL, NULL, &tv) < 0) {
+			fprintf (stderr, "select error\n");
+			return (1);
+		}
+
+		if (FD_ISSET (sock, &rset)) {
 			if ((n = recvfrom (sock, msg, sizeof msg - 1, 0,
 					   (struct sockaddr*) &sa, &sa_len))
 			    > 0) {
@@ -577,16 +604,20 @@ main (int argc, char **argv)
 				}
 			}
 			printf ("received packet: '%s'\n", msg);
-
+		}
+		if (FD_ISSET (keyboard_fd, &rset)) {
 			fgets (msg, sizeof msg, stdin);
 			if (sendto (sock, msg, strlen (msg) + 1, 0,
 				    (struct sockaddr*) &sa, sizeof (sa))
 			    <= (int) strlen (msg)) {
 				fprintf (stderr, "error sending packet\n");
 			}
-			break;
-		case 1:
-			if (started_sdl == 0) {
+			if (strcasecmp (msg, "quit\n")
+			    || strcasecmp (msg, "q\n")) {
+				    return (0);
+			    }
+		}
+/*			if (started_sdl == 0) {
 				alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE
 					      | SDL_DOUBLEBUF);	
 				SDL_WM_SetCaption ("RTS client", NULL);
@@ -599,8 +630,7 @@ main (int argc, char **argv)
 			moving ();
 			draw ();
 			SDL_Flip (screen);
-			break;
-		}
+			break;*/
 	}
 	return (0);
 }
