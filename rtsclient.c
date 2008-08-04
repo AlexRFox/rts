@@ -12,6 +12,7 @@ enum {
 
 int port, sock, keyboard_fd, mousebutton[10];
 double mouse_x, mouse_y;
+char mapdata[1024];
 FILE *fp;
 
 struct hostent *hostlist;
@@ -62,8 +63,6 @@ sendpacket (char str[1024], struct sockaddr_in *sa)
                 fprintf (stderr, "error sending packet\n");
         }
 }
-
-
 
 void
 unit_def (struct unit *up, struct pathblock *pp)
@@ -517,7 +516,7 @@ main (int argc, char **argv)
 {
 	struct timeval tv;
 	int n, mode, started_sdl, joined, slen, maxfd;
-        char dotted_ip[15], msg[1024];
+        char dotted_ip[15], msg[1024], **stringp;
 	socklen_t sa_len;
 	fd_set rset;
 
@@ -584,7 +583,7 @@ main (int argc, char **argv)
 		}
 
 		tv.tv_sec = 0;
-		tv.tv_usec = 30 * 1000;
+		tv.tv_usec = 15 * 1000;
 
 		if (select (maxfd + 1, &rset, NULL, NULL, &tv) < 0) {
 			fprintf (stderr, "select error\n");
@@ -604,6 +603,15 @@ main (int argc, char **argv)
 				}
 			}
 			printf ("received packet: '%s'\n", msg);
+			switch (mode) {
+			case 0:
+				break;
+			case 1:
+				sprintf (mapdata, msg);
+				strsep (&msg, "\n");
+				printf (msg);
+				break;
+			}
 		}
 		if (FD_ISSET (keyboard_fd, &rset)) {
 			fgets (msg, sizeof msg, stdin);
@@ -612,12 +620,23 @@ main (int argc, char **argv)
 			    <= (int) strlen (msg)) {
 				fprintf (stderr, "error sending packet\n");
 			}
-			if (strcasecmp (msg, "quit\n")
-			    || strcasecmp (msg, "q\n")) {
-				return (0);
+			if (strcasecmp (msg, "quit\n") == 0
+			    || strcasecmp (msg, "q\n") == 0) {
+				printf ("you have left\n");
+			}
+			switch (mode) {
+			case 0:
+				if (strcasecmp (msg, "start game\n") == 0) {
+					mode = 1;
+					sendpacket ("base map request", &sa);
+				}
+				break;
+			case 1:
+				break;
 			}
 		}
-/*			if (started_sdl == 0) {
+		if (mode == 1) {
+			if (started_sdl == 0) {
 				alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE
 					      | SDL_DOUBLEBUF);	
 				SDL_WM_SetCaption ("RTS client", NULL);
@@ -630,7 +649,7 @@ main (int argc, char **argv)
 			moving ();
 			draw ();
 			SDL_Flip (screen);
-			break;*/
+		}
 	}
 	return (0);
 }

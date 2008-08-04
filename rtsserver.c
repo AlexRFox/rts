@@ -225,7 +225,9 @@ main (int argc, char **argv)
 						fgets (line, sizeof line, fp);
 						
 						if (msg[0] == 0) {
-							sprintf (msg, "%s",
+							sprintf (msg, "map "
+								 "data follows"
+								 ":\n%s",
 								 line);
 						} else {
 							sprintf (msg, "%s%s",
@@ -236,6 +238,22 @@ main (int argc, char **argv)
 					sendpacket (msg,
 						    &(sp->ca));
 					rewind (fp);
+				} else if (strcasecmp (buff, "quit") == 0
+					   || strcasecmp (buff, "q") == 0) {
+					if (sp->joined == 1) {
+						sp->joined = 0;
+						sprintf (msg, "player %g "
+							 "left\n",
+							 sp->playernum);
+						sendtoall (msg);
+					} else {
+						printf ("player %g already "
+							"left\n",
+							sp->playernum);
+						sprintf (msg, "you have "
+							 "already left\n");
+						sendpacket (msg, &(sp->ca));
+					}
 				} else {
 					printf ("invalid packet received\n");
 				}
