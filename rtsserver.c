@@ -102,7 +102,7 @@ main (int argc, char **argv)
 {
 	struct sockaddr_in sa, ca;
 	double now;
-	char c, line[1024], msg[1024], buff[1024];
+	char msg[1024], buff[1024], mapname[1024];
 	int n, slen;
 	socklen_t ca_len;
 	
@@ -114,8 +114,8 @@ main (int argc, char **argv)
 		printf ("usage: rtsserver mapname.rtsmap\n");
 		return (1);
 	}
-	
-	fp = fopen (argv[1], "r");
+
+	strcpy (mapname, argv[1]);
 		
 	sock = socket (PF_INET, SOCK_DGRAM, IPPROTO_IP);
 	
@@ -215,29 +215,10 @@ main (int argc, char **argv)
 				}
 				break;
 			case 1:
-				if (strcmp (buff, "base map request")
-				    == 0 ) {
-					c = getc (fp);
-					msg[0] = 0;
-
-					while (c != EOF) {
-						ungetc (c, fp);
-						fgets (line, sizeof line, fp);
-						
-						if (msg[0] == 0) {
-							sprintf (msg, "map "
-								 "data follows"
-								 ":\n%s",
-								 line);
-						} else {
-							sprintf (msg, "%s%s",
-								 msg, line);
-						}
-						c = getc (fp);
-					}
-					sendpacket (msg,
-						    &(sp->ca));
-					rewind (fp);
+				if (strcmp (buff, "base map request") == 0 ) {
+					sprintf (msg, "map name:\n%s\n",
+						 mapname);
+					sendpacket (msg, &(sp->ca));
 				} else if (strcasecmp (buff, "quit") == 0
 					   || strcasecmp (buff, "q") == 0) {
 					if (sp->joined == 1) {

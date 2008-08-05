@@ -12,7 +12,7 @@ enum {
 
 int port, sock, keyboard_fd, mousebutton[10];
 double mouse_x, mouse_y;
-char mapdata[1024];
+char pktbackup[1024], msg[1024];
 FILE *fp;
 
 struct hostent *hostlist;
@@ -180,9 +180,6 @@ run_inits (void)
 	init_units ();
 	init_selectbox ();
 	init_destimg ();
-	if (fp) {
-		init_pathblock ();
-	}
 }
 
 void
@@ -516,7 +513,7 @@ main (int argc, char **argv)
 {
 	struct timeval tv;
 	int n, mode, started_sdl, joined, slen, maxfd;
-        char dotted_ip[15], msg[1024], **stringp;
+        char dotted_ip[15], *stringp, *strstep;
 	socklen_t sa_len;
 	fd_set rset;
 
@@ -607,9 +604,16 @@ main (int argc, char **argv)
 			case 0:
 				break;
 			case 1:
-				sprintf (mapdata, msg);
-				strsep (&msg, "\n");
-				printf (msg);
+				strcpy (pktbackup, msg);
+				strstep = pktbackup;
+				if ((stringp = strsep (&strstep, "\n"))
+				    != NULL) {
+					if (strcmp (stringp, "map name:")
+					    == 0) {
+						fp = fopen (strstep, "r");
+						init_pathblock ();
+					}
+				}
 				break;
 			}
 		}

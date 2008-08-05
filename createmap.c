@@ -126,8 +126,6 @@ save_map (void)
 {
 	struct pathblock *pp;
 
-	fprintf (fp, "%s\n", mapname);
-
 	for (pp = first_pathblock; pp; pp = pp->next) {
 		fprintf (fp, "%g, %g, %g, %g\n", pp->x, pp->y, pp->w, pp->h);
 	}
