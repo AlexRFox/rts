@@ -65,6 +65,25 @@ sendpacket (char str[1024], struct sockaddr_in *sa)
 }
 
 void
+stream_data (void)
+{
+	struct unit *up;
+	msg[0] = 0;
+
+	for (up = first_unit; up; up = up->next) {
+		if (msg[0] == 0) {
+			sprintf (msg, "unit stream\n%d, %d, %d, %d",
+				 (int) up->x, (int) up->y, (int) up->h,
+				 (int) up->w);
+		} else {
+			sprintf (msg, "%s\n%d, %d, %d, %d", msg, (int) up->x,
+				 (int) up->y, (int) up->h, (int) up->w);
+		}
+	}
+	sendpacket (msg, &sa);
+}
+
+void
 unit_def (struct unit *up, struct pathblock *pp)
 {
 	if (up) {
@@ -651,6 +670,7 @@ main (int argc, char **argv)
 			SDL_FillRect (screen, NULL, 0x000000);
 			selecting ();
 			moving ();
+			stream_data ();
 			draw ();
 			SDL_Flip (screen);
 		}

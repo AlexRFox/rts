@@ -4,7 +4,7 @@
 #define PORT 9977
 
 int sock, port, mode, numofplayers, keyboard_fd;
-char msg[1024];
+char msg[1024], pktbackup[1024];
 FILE *fp;
 
 struct player {
@@ -15,6 +15,12 @@ struct player {
 };
 
 struct player *first_player, *last_player, *sp;
+
+struct unit {
+	int x, y, h, w;
+};
+
+struct unit *first_unit, *last_unit;
 
 struct player*
 idplayer (struct sockaddr_in *ca)
@@ -102,7 +108,7 @@ main (int argc, char **argv)
 {
 	struct sockaddr_in sa, ca;
 	double now;
-	char msg[1024], buff[1024], mapname[1024];
+	char msg[1024], buff[1024], mapname[1024], *stringp, strstep;
 	int n, slen;
 	socklen_t ca_len;
 	
@@ -215,7 +221,15 @@ main (int argc, char **argv)
 				}
 				break;
 			case 1:
-				if (strcmp (buff, "base map request") == 0 ) {
+/*				strcpy (pktbackup, buff);
+				strstep = pktbackup;
+				if ((stringp = strsep (&strstep, "\n"))
+				    == NULL) {
+					sprintf (stderr,
+						 "error with strsep\n");
+						 }*/
+				if (strcmp (buff, "base map request")
+				    == 0 ) {
 					sprintf (msg, "map name:\n%s\n",
 						 mapname);
 					sendpacket (msg, &(sp->ca));
@@ -235,6 +249,14 @@ main (int argc, char **argv)
 							 "already left\n");
 						sendpacket (msg, &(sp->ca));
 					}
+/*				} else if (strcmp (stringp,
+						   "unit stream") == 0) {
+					while ((stringp = strsep
+						(&strstep, "\n")) != NULL) {
+						sscanf (stringp,
+							"%d, %d, %d, %d", 
+
+							}*/
 				} else {
 					printf ("invalid packet received\n");
 				}
