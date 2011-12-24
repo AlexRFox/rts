@@ -23,5 +23,5 @@ rtsclient: rtsclient.o alex.o alexsdl.o alexether.o
 	$(CC) $(CFLAGS) -o rtsclient rtsclient.o alex.o alexsdl.o alexether.o $(LIBS)
 
 clean:
-	rm *~
-	rm *.o
+	rm -f *~
+	rm -f *.o
