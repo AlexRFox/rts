@@ -1,8 +1,5 @@
-CFLAGS = -g -Wall `sdl-config --cflags`
+CFLAGS = -g -Wall `sdl-config --cflags` -O2
 LIBS = -g -Wall `sdl-config --libs` -lm -lSDL_image -lSDL_gfx -lSDL_ttf
-
-rts: rts.o alexsdl.o alex.o
-	$(CC) $(CFLAGS) -o rts rts.o alexsdl.o alex.o $(LIBS)
 
 baserts: baserts.o alexsdl.o alex.o
 	$(CC) $(CFLAGS) -o baserts baserts.o alexsdl.o alex.o $(LIBS)
