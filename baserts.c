@@ -184,11 +184,11 @@ check_direction (struct rect *sp)
 	}
 }
 
-int
+void
 select_check (double left, double right, double top, double bottom)
 {
 	struct unit *up;
-	double collide;
+//	double collide;
 
 	for (up = first_unit; up; up = up->next) {
 		if (right < up->left
@@ -200,7 +200,7 @@ select_check (double left, double right, double top, double bottom)
 			up->selected = 1;
 		}
 	}
-	return (collide);
+//	return (collide);
 }
 
 void
@@ -253,10 +253,12 @@ destination (void)
 	double now;
 	struct unit *up;
 	
+	now = get_secs ();
+
 	if (mousebutton[3]) {
 		for (up = first_unit; up; up = up->next) {
 			if (up->selected) {
-				now = get_secs();
+				now = get_secs ();
 				
 				up->moveto_x = mouse_x;
 				up->moveto_y = mouse_y;
