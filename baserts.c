@@ -12,24 +12,24 @@ enum {
 int mousebutton[10];
 double mouse_x, mouse_y;
 
+struct rect {
+	double x1, y1, x2, y2, h, w, center_x, center_y;
+	double top, bottom, left, right;
+	int drawing, direction;
+	Uint32 color;
+};
+
+struct rect selectbox;
+
 struct unit {
 	struct unit *next;
-	double x, y, h, w, center_x, center_y;
-	double top, bottom, left, right;
+	struct rect pos;
 	double mov_x, mov_y, moveto_x, moveto_y, moving, selected;
 	double lasttime;
 	Uint32 color;
 };
 
 struct unit *first_unit, *last_unit;
-
-struct rect {
-	double x1, y1, x2, y2;
-	int drawing, direction;
-	Uint32 color;
-};
-
-struct rect selectbox;
 
 struct dest {
 	double x, y;
@@ -52,12 +52,12 @@ void
 unit_def (struct unit *up, struct pathblock *pp)
 {
 	if (up) {
-		up->top = up->y;
-		up->bottom = up->y + up->h;
-		up->left = up->x;
-		up->right = up->x + up->w;
-		up->center_x = up->x + up->w / 2;
-		up->center_y = up->y + up->h / 2;
+		up->pos.top = up->pos.y1;
+		up->pos.bottom = up->pos.y1 + up->pos.h;
+		up->pos.left = up->pos.x1;
+		up->pos.right = up->pos.x1 + up->pos.w;
+		up->pos.center_x = up->pos.x1 + up->pos.w / 2;
+		up->pos.center_y = up->pos.y1 + up->pos.h / 2;
 	}
 	if (pp) {
 		pp->top = pp->y;
@@ -116,14 +116,14 @@ init_units (void)
 
 		last_unit = up;
 
-		up->x = unit_x;
-		up->y = unit_y;
-		up->h = 20;
-		up->w = 40;
+		up->pos.x1 = unit_x;
+		up->pos.y1 = unit_y;
+		up->pos.h = 20;
+		up->pos.w = 40;
 		up->color = 0x00ff00ff;
 		unit_def (up, NULL);
-		up->moveto_x = up->center_x;
-		up->moveto_y = up->center_y;
+		up->moveto_x = up->pos.center_x;
+		up->moveto_y = up->pos.center_y;
 		up->lasttime = get_secs();
 		up->moving = 0;
 		unit_x += 200;
@@ -188,10 +188,10 @@ select_check (double left, double right, double top, double bottom)
 	struct unit *up;
 
 	for (up = first_unit; up; up = up->next) {
-		if (right < up->left
-		    || left > up->right
-		    || top > up->bottom
-		    || bottom < up->top) {
+		if (right < up->pos.left
+		    || left > up->pos.right
+		    || top > up->pos.bottom
+		    || bottom < up->pos.top) {
 			up->selected = 0;
 		} else {
 			up->selected = 1;
@@ -276,27 +276,27 @@ collision_x (struct unit *up1)
 	struct pathblock *pp;
 	double collide;
 
-	if (up1->left + up1->mov_x <= 0 || up1->right + up1->mov_x >= WIDTH) {
+	if (up1->pos.left + up1->mov_x <= 0 || up1->pos.right + up1->mov_x >= WIDTH) {
 		return (1);
 	}
 	for (up2 = first_unit; up2; up2 = up2->next) {
 		if (up2 == up1) {
 			continue;
 		}
-		if (up1->right + up1->mov_x < up2->left
-		    || up1->left + up1->mov_x > up2->right
-		    || up1->top > up2->bottom
-		    || up1->bottom < up2->top) {
+		if (up1->pos.right + up1->mov_x < up2->pos.left
+		    || up1->pos.left + up1->mov_x > up2->pos.right
+		    || up1->pos.top > up2->pos.bottom
+		    || up1->pos.bottom < up2->pos.top) {
 			collide = 0;
 		} else {
 			return (1);
 		}
 	}
 	for (pp = first_pathblock; pp; pp = pp->next) {
-		if (up1->right + up1->mov_x < pp->left
-		    || up1->left + up1->mov_x > pp->right
-		    || up1->top > pp->bottom
-		    || up1->bottom < pp->top) {
+		if (up1->pos.right + up1->mov_x < pp->left
+		    || up1->pos.left + up1->mov_x > pp->right
+		    || up1->pos.top > pp->bottom
+		    || up1->pos.bottom < pp->top) {
 			collide = 0;
 		} else {
 			return (1);
@@ -312,27 +312,27 @@ collision_y (struct unit *up1)
 	struct pathblock *pp;
 	double collide;
 
-	if (up1->top + up1->mov_y <= 0 || up1->bottom + up1->mov_y >= HEIGHT) {
+	if (up1->pos.top + up1->mov_y <= 0 || up1->pos.bottom + up1->mov_y >= HEIGHT) {
 		return (1);
 	}
 	for (up2 = first_unit; up2; up2 = up2->next) {
 		if (up2 == up1) {
 			continue;
 		}
-		if (up1->top + up1->mov_y > up2->bottom
-		    || up1->bottom + up1->mov_y < up2->top
-		    || up1->right < up2->left
-		    || up1->left > up2->right) {
+		if (up1->pos.top + up1->mov_y > up2->pos.bottom
+		    || up1->pos.bottom + up1->mov_y < up2->pos.top
+		    || up1->pos.right < up2->pos.left
+		    || up1->pos.left > up2->pos.right) {
 			collide = 0;
 		} else {
 			return (1);
 		}
 	}
 	for (pp = first_pathblock; pp; pp = pp->next) {
-		if (up1->top + up1->mov_y > pp->bottom
-		    || up1->bottom + up1->mov_y < pp->top
-		    || up1->right < pp->left
-		    || up1->left > pp->right) {
+		if (up1->pos.top + up1->mov_y > pp->bottom
+		    || up1->pos.bottom + up1->mov_y < pp->top
+		    || up1->pos.right < pp->left
+		    || up1->pos.left > pp->right) {
 			collide = 0;
 		} else {
 			return (1);
@@ -351,8 +351,8 @@ moving (void)
 		now = get_secs ();
 
 		if (up->moving) {
-			dx = up->moveto_x - up->center_x;
-			dy = up->moveto_y - up->center_y;
+			dx = up->moveto_x - up->pos.center_x;
+			dy = up->moveto_y - up->pos.center_y;
 			theta = atan2 (dy, dx);
 			
 			dt = now - up->lasttime;
@@ -362,18 +362,18 @@ moving (void)
 			
 			if (fabs (up->mov_x) > fabs (dx)
 			    && fabs (up->mov_y) > fabs (dy)) {
-				up->x = up->moveto_x - up->w / 2;
-				up->y = up->moveto_y - up->h / 2;
+				up->pos.x1 = up->moveto_x - up->pos.w / 2;
+				up->pos.y1 = up->moveto_y - up->pos.h / 2;
 				up->moving = 0;
 			} else {
 				if (collision_x (up)) {
 					up->mov_x = 0;
 				}
-				up->x += up->mov_x;
+				up->pos.x1 += up->mov_x;
 				if (collision_y (up)) {
 					up->mov_y = 0;
 				}
-				up->y += up->mov_y;
+				up->pos.y1 += up->mov_y;
 			}
 			
 			up->lasttime = now;
@@ -385,50 +385,25 @@ moving (void)
 void
 draw (void)
 {
+	int i, j;
 	double now, dt;
 	struct unit *up;
 	struct pathblock *pp;
+
+	for (i = 0; i <= WIDTH / 25; i++) {
+		for (j = 0; j <= HEIGHT / 25; j++) {
+			rectangleColor (screen, i * 25, j * 25,
+					(i + 1) * 25, (j + 1) * 25,
+					0x66666666);
+		}
+	}
 
 	now = get_secs ();
 
 	if (destimg.drawing) {
 		dt = floor (10 * (now - destimg.lasttime));
 		if (dt < 8) {
-			switch ((int) dt) {
-			case 0:
-				draw_blit (destimg.frames[0],
-					   destimg.x, destimg.y);
-				break;
-			case 1:
-				draw_blit (destimg.frames[1],
-					   destimg.x, destimg.y);
-				break;
-			case 2:
-				draw_blit (destimg.frames[2],
-					   destimg.x, destimg.y);
-				break;
-			case 3:
-				draw_blit (destimg.frames[3],
-					   destimg.x, destimg.y);
-				break;
-			case 4:
-				draw_blit (destimg.frames[4],
-					   destimg.x, destimg.y);
-				break;
-			case 5:
-				draw_blit (destimg.frames[5],
-					   destimg.x, destimg.y);
-				break;
-			case 6:
-				draw_blit (destimg.frames[6],
-					   destimg.x, destimg.y);
-				break;
-			case 7:
-				draw_blit (destimg.frames[7],
-					   destimg.x, destimg.y);
-				break;
-			}
-
+			draw_blit (destimg.frames[(int) dt], destimg.x, destimg.y);
 		} else {
 			destimg.drawing = 0;
 		}
@@ -440,14 +415,14 @@ draw (void)
 	}
 
 	for (up = first_unit; up; up = up->next) {
-		boxColor (screen, up->left, up->top, up->right, up->bottom,
+		boxColor (screen, up->pos.left, up->pos.top, up->pos.right, up->pos.bottom,
 			  up->color);
 		if (up->selected == 1) {
-			circleColor (screen, up->center_x, up->center_y,
-				     hypot (up->h / 2, up->w / 2) + 3,
+			circleColor (screen, up->pos.center_x, up->pos.center_y,
+				     hypot (up->pos.h / 2, up->pos.w / 2) + 3,
 				     0x00ff00ff);
-			aacircleColor (screen, up->center_x, up->center_y,
-				       hypot (up->h / 2, up->w / 2) + 3,
+			aacircleColor (screen, up->pos.center_x, up->pos.center_y,
+				       hypot (up->pos.h / 2, up->pos.w / 2) + 3,
 				       0x00ff00ff);
 		}
 	}
