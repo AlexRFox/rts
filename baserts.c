@@ -70,7 +70,7 @@ unit_def (struct unit *up, struct pathblock *pp)
 void
 init_pathblock (void)
 {
-/*	double pathblocks, pathblock_x, pathblock_y;
+	double pathblocks, pathblock_x, pathblock_y;
 
 	pathblock_x = 300;
 	pathblock_y = 240;
@@ -94,7 +94,6 @@ init_pathblock (void)
 		pp->color = 0x777777ff;
 		unit_def (NULL, pp);
 	}
-*/
 }
 
 void
@@ -105,7 +104,7 @@ init_units (void)
 	unit_x = 200;
 	unit_y = 240;
 
-	for (units = 0; units <= 1; units++) {
+	for (units = 0; units < 1; units++) {
 		struct unit *up;
 		up = xcalloc (1, sizeof *up);
 
@@ -136,7 +135,6 @@ init_selectbox (void)
 {
 	selectbox.drawing = 0;
 	selectbox.color = 0x0000ffff;
-	
 }
 
 void
@@ -184,11 +182,10 @@ check_direction (struct rect *sp)
 	}
 }
 
-int
+void
 select_check (double left, double right, double top, double bottom)
 {
 	struct unit *up;
-	double collide;
 
 	for (up = first_unit; up; up = up->next) {
 		if (right < up->left
@@ -200,7 +197,6 @@ select_check (double left, double right, double top, double bottom)
 			up->selected = 1;
 		}
 	}
-	return (collide);
 }
 
 void
@@ -253,10 +249,12 @@ destination (void)
 	double now;
 	struct unit *up;
 	
+	now = get_secs ();
+
 	if (mousebutton[3]) {
 		for (up = first_unit; up; up = up->next) {
 			if (up->selected) {
-				now = get_secs();
+				now = get_secs ();
 				
 				up->moveto_x = mouse_x;
 				up->moveto_y = mouse_y;

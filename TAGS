@@ -1,0 +1,316 @@
+
+alex.c,46
+xcalloc 4,26
+get_secs 16,223
+d_to_r 24,350
+
+alexsdl.c,96
+alexsdl_init 4,26
+alexttf_init 20,378
+draw_text 33,583
+load_blit 54,1058
+draw_blit 65,1296
+
+alexsdl.h,61
+SDL_Surface *screen;screen7,111
+TTF_Font *font;font8,132
+
+baserts.c,2058
+	WIDTH 4,29
+	HEIGHT 5,43
+	SPEED 9,69
+int mousebutton[mousebutton12,87
+double mouse_x,13,108
+double mouse_x, mouse_y;13,108
+struct unit 15,134
+	struct unit *next;next16,148
+	double x,17,168
+	double x, y,17,168
+	double x, y, h,17,168
+	double x, y, h, w,17,168
+	double x, y, h, w, center_x,17,168
+	double x, y, h, w, center_x, center_y;17,168
+	double top,18,208
+	double top, bottom,18,208
+	double top, bottom, left,18,208
+	double top, bottom, left, right;18,208
+	double mov_x,19,242
+	double mov_x, mov_y,19,242
+	double mov_x, mov_y, moveto_x,19,242
+	double mov_x, mov_y, moveto_x, moveto_y,19,242
+	double mov_x, mov_y, moveto_x, moveto_y, moving,19,242
+	double mov_x, mov_y, moveto_x, moveto_y, moving, selected;19,242
+	double lasttime;20,302
+	Uint32 color;21,320
+struct unit *first_unit,first_unit24,339
+struct unit *first_unit, *last_unit;last_unit24,339
+struct rect 26,377
+	double x1,27,391
+	double x1, y1,27,391
+	double x1, y1, x2,27,391
+	double x1, y1, x2, y2;27,391
+	int drawing,28,415
+	int drawing, direction;28,415
+	Uint32 color;29,440
+struct rect selectbox;32,459
+struct dest 34,483
+	double x,35,497
+	double x, y;35,497
+	SDL_Surface *frames[frames36,511
+	double lasttime,37,536
+	double lasttime, drawing;37,536
+struct dest destimg;40,567
+struct pathblock 42,589
+	struct pathblock *next;next43,608
+	double x,44,633
+	double x, y,44,633
+	double x, y, h,44,633
+	double x, y, h, w;44,633
+	double top,45,653
+	double top, bottom,45,653
+	double top, bottom, left,45,653
+	double top, bottom, left, right;45,653
+	Uint32 color;46,687
+struct pathblock *first_pathblock,first_pathblock49,706
+struct pathblock *first_pathblock, *last_pathblock;last_pathblock49,706
+unit_def 52,764
+init_pathblock 71,1119
+init_units 101,1610
+init_selectbox 135,2143
+init_destimg 143,2232
+run_inits 161,2802
+check_direction 170,2903
+select_check 188,3152
+selecting 205,3457
+destination 249,4406
+collision_x 275,4824
+collision_y 311,5568
+moving 347,6314
+draw 388,7103
+process_input 464,8722
+main 494,9253
+
+createmap.c,917
+	WIDTH 4,29
+	HEIGHT 5,43
+int mousebutton[mousebutton8,62
+double mouse_x,9,83
+double mouse_x, mouse_y;9,83
+char mapname[mapname10,108
+FILE *fp;fp11,128
+struct pathblock 13,139
+	struct pathblock *next;next14,158
+	double x,15,183
+	double x, y,15,183
+	double x, y, h,15,183
+	double x, y, h, w;15,183
+	double top,16,203
+	double top, bottom,16,203
+	double top, bottom, left,16,203
+	double top, bottom, left, right;16,203
+	double canplace;17,237
+	Uint32 color;18,255
+struct pathblock *first_pathblock,first_pathblock21,274
+struct pathblock *first_pathblock, *last_pathblock,last_pathblock21,274
+struct pathblock *first_pathblock, *last_pathblock, placeblock,21,274
+struct pathblock *first_pathblock, *last_pathblock, placeblock, unit;21,274
+unit_def 24,350
+init_stuff 33,486
+place_pathblock 47,697
+check_space 73,1123
+draw 110,2014
+save_map 125,2388
+process_input 137,2593
+main 180,3722
+
+fightingrts.c,2157
+	WIDTH 4,29
+	HEIGHT 5,43
+	SPEED 9,69
+int mousebutton[mousebutton12,87
+double mouse_x,13,108
+double mouse_x, mouse_y;13,108
+FILE *fp;fp14,133
+struct unit 16,144
+	struct unit *next;next17,158
+	double x,18,178
+	double x, y,18,178
+	double x, y, h,18,178
+	double x, y, h, w,18,178
+	double x, y, h, w, center_x,18,178
+	double x, y, h, w, center_x, center_y;18,178
+	double top,19,218
+	double top, bottom,19,218
+	double top, bottom, left,19,218
+	double top, bottom, left, right;19,218
+	double mov_x,20,252
+	double mov_x, mov_y,20,252
+	double mov_x, mov_y, moveto_x,20,252
+	double mov_x, mov_y, moveto_x, moveto_y,20,252
+	double mov_x, mov_y, moveto_x, moveto_y, moving,20,252
+	double mov_x, mov_y, moveto_x, moveto_y, moving, selected,20,252
+	double mov_x, mov_y, moveto_x, moveto_y, moving, selected, selectable;20,252
+	double lasttime;21,324
+	Uint32 color;22,342
+struct unit *first_unit,first_unit25,361
+struct unit *first_unit, *last_unit;last_unit25,361
+struct rect 27,399
+	double x1,28,413
+	double x1, y1,28,413
+	double x1, y1, x2,28,413
+	double x1, y1, x2, y2;28,413
+	int drawing,29,437
+	int drawing, direction;29,437
+	Uint32 color;30,462
+struct rect selectbox;33,481
+struct dest 35,505
+	double x,36,519
+	double x, y;36,519
+	SDL_Surface *frames[frames37,533
+	double lasttime,38,558
+	double lasttime, drawing;38,558
+struct dest destimg;41,589
+struct pathblock 43,611
+	struct pathblock *next;next44,630
+	double x,45,655
+	double x, y,45,655
+	double x, y, h,45,655
+	double x, y, h, w;45,655
+	double top,46,675
+	double top, bottom,46,675
+	double top, bottom, left,46,675
+	double top, bottom, left, right;46,675
+	Uint32 color;47,709
+struct pathblock *first_pathblock,first_pathblock50,728
+struct pathblock *first_pathblock, *last_pathblock;last_pathblock50,728
+unit_def 53,786
+init_pathblock 72,1141
+init_units 107,1917
+init_selectbox 141,2450
+init_destimg 149,2539
+run_inits 167,3109
+check_direction 175,3190
+select_check 193,3438
+selecting 212,3779
+destination 256,4728
+collision_x 280,5124
+collision_y 316,5868
+moving 352,6614
+draw 393,7403
+process_input 469,9022
+main 499,9553
+
+loadmap.c,2078
+	WIDTH 4,29
+	HEIGHT 5,43
+	SPEED 9,69
+int mousebutton[mousebutton12,87
+double mouse_x,13,108
+double mouse_x, mouse_y;13,108
+FILE *fp;fp14,133
+struct unit 16,144
+	struct unit *next;next17,158
+	double x,18,178
+	double x, y,18,178
+	double x, y, h,18,178
+	double x, y, h, w,18,178
+	double x, y, h, w, center_x,18,178
+	double x, y, h, w, center_x, center_y;18,178
+	double top,19,218
+	double top, bottom,19,218
+	double top, bottom, left,19,218
+	double top, bottom, left, right;19,218
+	double mov_x,20,252
+	double mov_x, mov_y,20,252
+	double mov_x, mov_y, moveto_x,20,252
+	double mov_x, mov_y, moveto_x, moveto_y,20,252
+	double mov_x, mov_y, moveto_x, moveto_y, moving,20,252
+	double mov_x, mov_y, moveto_x, moveto_y, moving, selected;20,252
+	double lasttime;21,312
+	Uint32 color;22,330
+struct unit *first_unit,first_unit25,349
+struct unit *first_unit, *last_unit;last_unit25,349
+struct rect 27,387
+	double x1,28,401
+	double x1, y1,28,401
+	double x1, y1, x2,28,401
+	double x1, y1, x2, y2;28,401
+	int drawing,29,425
+	int drawing, direction;29,425
+	Uint32 color;30,450
+struct rect selectbox;33,469
+struct dest 35,493
+	double x,36,507
+	double x, y;36,507
+	SDL_Surface *frames[frames37,521
+	double lasttime,38,546
+	double lasttime, drawing;38,546
+struct dest destimg;41,577
+struct pathblock 43,599
+	struct pathblock *next;next44,618
+	double x,45,643
+	double x, y,45,643
+	double x, y, h,45,643
+	double x, y, h, w;45,643
+	double top,46,663
+	double top, bottom,46,663
+	double top, bottom, left,46,663
+	double top, bottom, left, right;46,663
+	Uint32 color;47,697
+struct pathblock *first_pathblock,first_pathblock50,716
+struct pathblock *first_pathblock, *last_pathblock;last_pathblock50,716
+unit_def 53,774
+init_pathblock 72,1129
+init_units 107,1647
+init_selectbox 137,2146
+init_destimg 145,2235
+run_inits 163,2805
+check_direction 172,2906
+select_check 190,3154
+selecting 209,3495
+destination 253,4444
+collision_x 277,4840
+collision_y 315,5599
+moving 351,6345
+draw 392,7134
+process_input 468,8753
+main 498,9284
+
+rtsserver.c,939
+#define PORT 4,42
+int sock,6,61
+int sock, port,6,61
+int sock, port, mode,6,61
+int sock, port, mode, numofplayers,6,61
+int sock, port, mode, numofplayers, keyboard_fd;6,61
+char msg[msg7,110
+char msg[1024], pktbackup[pktbackup7,110
+FILE *fp;fp8,143
+struct player 10,154
+	struct player *next;next11,170
+	struct sockaddr_in ca;12,192
+	double playernum,13,216
+	double playernum, joined,13,216
+	double playernum, joined, lastpong;13,216
+	char player_ip[player_ip14,253
+struct player *first_player,first_player17,278
+struct player *first_player, *last_player,last_player17,278
+struct player *first_player, *last_player, *sp;sp17,278
+struct unit 19,327
+	int x,20,341
+	int x, y,20,341
+	int x, y, h,20,341
+	int x, y, h, w;20,341
+struct unit *first_unit,first_unit23,362
+struct unit *first_unit, *last_unit;last_unit23,362
+idplayer 26,415
+sendpacket 40,621
+sendtoall 50,827
+createplayer 63,1005
+main 107,1867
+
+alex.h,0
+
+alexether.h,0
+
+alexether.c,0

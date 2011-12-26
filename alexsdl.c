@@ -13,6 +13,7 @@ alexsdl_init (int width, int height, Uint32 flags)
 		printf ("Unable to set video mode: %s\n", SDL_GetError());
 		return (1);
 	}
+
 	return 0;
 }
 
