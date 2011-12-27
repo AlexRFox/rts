@@ -6,7 +6,7 @@ enum {
 };
 
 enum {
-	SPEED = 100,
+	SPEED = 300,
 };
 
 int mousebutton[10];
@@ -41,6 +41,7 @@ struct dest destimg;
 
 struct pathblock {
 	struct pathblock *next;
+	struct rect pos;
 	double x, y, h, w;
 	double top, bottom, left, right;
 	Uint32 color;
@@ -64,6 +65,10 @@ unit_def (struct unit *up, struct pathblock *pp)
 		pp->bottom = pp->y + pp->h;
 		pp->left = pp->x;
 		pp->right = pp->x + pp->w;
+		pp->pos.top = pp->y;
+		pp->pos.bottom = pp->y + pp->h;
+		pp->pos.left = pp->x;
+		pp->pos.right = pp->x + pp->w;
 	}
 }
 
@@ -270,37 +275,60 @@ destination (void)
 }
 
 int
+detect_intersect (struct rect *r1, struct rect *r2)
+{
+	int collide;
+
+	collide = 0;
+
+	if (r1->right < r2->left
+	    || r1->left > r2->right
+	    || r1->bottom < r2->top
+	    || r1->top > r2->bottom) {
+		collide = 0;
+	} else {
+		collide = 1;
+	}
+		
+	return (collide);
+}
+
+int
 collision_x (struct unit *up1)
 {
 	struct unit *up2;
 	struct pathblock *pp;
-	double collide;
+	struct rect newpos;
+	int collide;
 
-	if (up1->pos.left + up1->mov_x <= 0 || up1->pos.right + up1->mov_x >= WIDTH) {
-		return (1);
+	newpos.left = up1->pos.left + up1->mov_x;
+	newpos.right = up1->pos.right + up1->mov_x;
+	newpos.top = up1->pos.top;
+	newpos.bottom = up1->pos.bottom;
+
+	collide = 0;
+
+	if (newpos.left <= 0 || newpos.right >= WIDTH) {
+		collide = 1;
 	}
+
 	for (up2 = first_unit; up2; up2 = up2->next) {
+		if (collide) {
+			break;
+		}
+
 		if (up2 == up1) {
 			continue;
 		}
-		if (up1->pos.right + up1->mov_x < up2->pos.left
-		    || up1->pos.left + up1->mov_x > up2->pos.right
-		    || up1->pos.top > up2->pos.bottom
-		    || up1->pos.bottom < up2->pos.top) {
-			collide = 0;
-		} else {
-			return (1);
-		}
+
+		collide = detect_intersect (&newpos, &up2->pos);
 	}
 	for (pp = first_pathblock; pp; pp = pp->next) {
-		if (up1->pos.right + up1->mov_x < pp->left
-		    || up1->pos.left + up1->mov_x > pp->right
-		    || up1->pos.top > pp->bottom
-		    || up1->pos.bottom < pp->top) {
-			collide = 0;
-		} else {
-			return (1);
+		if (collide) {
+			break;
 		}
+
+		collide = detect_intersect (&newpos, &pp->pos);
 	}
 	return (collide);
 }
@@ -310,33 +338,38 @@ collision_y (struct unit *up1)
 {
 	struct unit *up2;
 	struct pathblock *pp;
+	struct rect newpos;
 	double collide;
 
-	if (up1->pos.top + up1->mov_y <= 0 || up1->pos.bottom + up1->mov_y >= HEIGHT) {
-		return (1);
+	newpos.left = up1->pos.left;
+	newpos.right = up1->pos.right;
+	newpos.top = up1->pos.top + up1->mov_y;
+	newpos.bottom = up1->pos.bottom + up1->mov_y;
+
+	collide = 0;
+
+	if (newpos.top <= 0 || newpos.bottom >= HEIGHT) {
+		collide = 1;
 	}
+
 	for (up2 = first_unit; up2; up2 = up2->next) {
+		if (collide) {
+			break;
+		}
+
 		if (up2 == up1) {
 			continue;
 		}
-		if (up1->pos.top + up1->mov_y > up2->pos.bottom
-		    || up1->pos.bottom + up1->mov_y < up2->pos.top
-		    || up1->pos.right < up2->pos.left
-		    || up1->pos.left > up2->pos.right) {
-			collide = 0;
-		} else {
-			return (1);
-		}
+
+		collide = detect_intersect (&newpos, &up2->pos);
 	}
+
 	for (pp = first_pathblock; pp; pp = pp->next) {
-		if (up1->pos.top + up1->mov_y > pp->bottom
-		    || up1->pos.bottom + up1->mov_y < pp->top
-		    || up1->pos.right < pp->left
-		    || up1->pos.left > pp->right) {
-			collide = 0;
-		} else {
-			return (1);
+		if (collide) {
+			break;
 		}
+
+		collide = detect_intersect (&newpos, &pp->pos);
 	}
 	return (collide);
 }
