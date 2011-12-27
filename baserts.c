@@ -3,13 +3,15 @@
 enum {
 	WIDTH = 640,
 	HEIGHT = 480,
-};
-
-enum {
 	SPEED = 300,
 };
 
-int mousebutton[10];
+enum {
+	MOVEMENT,
+	PATHING,
+};
+
+int mousebutton[10], mode;
 double mouse_x, mouse_y;
 
 struct rect {
@@ -24,7 +26,7 @@ struct rect selectbox;
 struct unit {
 	struct unit *next;
 	struct rect pos;
-	double mov_x, mov_y, moveto_x, moveto_y, moving, selected;
+	double mov_x, mov_y, moveto_x, moveto_y, moving, selected, path_x, path_y;
 	double lasttime;
 	Uint32 color;
 };
@@ -42,33 +44,49 @@ struct dest destimg;
 struct pathblock {
 	struct pathblock *next;
 	struct rect pos;
-	double x, y, h, w;
-	double top, bottom, left, right;
 	Uint32 color;
 };
 
 struct pathblock *first_pathblock, *last_pathblock;
 
+void rect_def (struct rect *r1);
+void unit_def (struct unit *up, struct pathblock *pp);
+void init_pathblock (void);
+void init_selectbox (void);
+void init_destimg (void);
+void run_inits (void);
+void check_direction (struct rect *sp);
+void select_check (double left, double right, double top, double bottom);
+void pathing (void);
+void selecting (void);
+void destination (void);
+int detect_intersect (struct rect *r1, struct rect *r2);
+int check_collision (struct rect *r1, struct rect *r2);
+void moving (void);
+void draw (void);
+void process_input (void);
+
+void
+rect_def (struct rect *r1)
+{
+	r1->top = r1->y1;
+	r1->bottom = r1->y1 + r1->h;
+	r1->left = r1->x1;
+	r1->right = r1->x1 + r1->w;
+	r1->x2 = r1->right;
+	r1->y2 = r1->bottom;
+	r1->center_x = r1->x1 + r1->w / 2;
+	r1->center_y = r1->y1 + r1->h / 2;
+}
+
 void
 unit_def (struct unit *up, struct pathblock *pp)
 {
 	if (up) {
-		up->pos.top = up->pos.y1;
-		up->pos.bottom = up->pos.y1 + up->pos.h;
-		up->pos.left = up->pos.x1;
-		up->pos.right = up->pos.x1 + up->pos.w;
-		up->pos.center_x = up->pos.x1 + up->pos.w / 2;
-		up->pos.center_y = up->pos.y1 + up->pos.h / 2;
+		rect_def (&up->pos);
 	}
 	if (pp) {
-		pp->top = pp->y;
-		pp->bottom = pp->y + pp->h;
-		pp->left = pp->x;
-		pp->right = pp->x + pp->w;
-		pp->pos.top = pp->y;
-		pp->pos.bottom = pp->y + pp->h;
-		pp->pos.left = pp->x;
-		pp->pos.right = pp->x + pp->w;
+		rect_def (&pp->pos);
 	}
 }
 
@@ -92,10 +110,10 @@ init_pathblock (void)
 
 		last_pathblock = pp;
 
-		pp->x = pathblock_x;
-		pp->y = pathblock_y;
-		pp->h = 50;
-		pp->w = 50;
+		pp->pos.x1 = pathblock_x;
+		pp->pos.y1 = pathblock_y;
+		pp->pos.h = 50;
+		pp->pos.w = 50;
 		pp->color = 0x777777ff;
 		unit_def (NULL, pp);
 	}
@@ -123,8 +141,8 @@ init_units (void)
 
 		up->pos.x1 = unit_x;
 		up->pos.y1 = unit_y;
-		up->pos.h = 20;
-		up->pos.w = 40;
+		up->pos.h = 15;
+		up->pos.w = 15;
 		up->color = 0x00ff00ff;
 		unit_def (up, NULL);
 		up->moveto_x = up->pos.center_x;
@@ -205,6 +223,23 @@ select_check (double left, double right, double top, double bottom)
 }
 
 void
+pathing (void)
+{
+	struct unit *up;
+
+	if (mousebutton[1]) {
+		for (up = first_unit; up; up = up->next) {
+			if (up->selected) {
+				up->path_x = mouse_x;
+				up->path_y = mouse_y;
+			}
+		}
+	}
+
+	//implement A*
+}
+
+void
 selecting (void)
 {
 	struct unit *up;
@@ -281,10 +316,10 @@ detect_intersect (struct rect *r1, struct rect *r2)
 
 	collide = 0;
 
-	if (r1->right < r2->left
-	    || r1->left > r2->right
-	    || r1->bottom < r2->top
-	    || r1->top > r2->bottom) {
+	if (r1->right <= r2->left
+	    || r1->left >= r2->right
+	    || r1->bottom <= r2->top
+	    || r1->top >= r2->bottom) {
 		collide = 0;
 	} else {
 		collide = 1;
@@ -294,83 +329,18 @@ detect_intersect (struct rect *r1, struct rect *r2)
 }
 
 int
-collision_x (struct unit *up1)
+check_collision (struct rect *r1, struct rect *r2)
 {
-	struct unit *up2;
-	struct pathblock *pp;
-	struct rect newpos;
 	int collide;
 
-	newpos.left = up1->pos.left + up1->mov_x;
-	newpos.right = up1->pos.right + up1->mov_x;
-	newpos.top = up1->pos.top;
-	newpos.bottom = up1->pos.bottom;
-
 	collide = 0;
 
-	if (newpos.left <= 0 || newpos.right >= WIDTH) {
+	if (r1->left <= 0 || r1->right >= WIDTH) {
 		collide = 1;
 	}
 
-	for (up2 = first_unit; up2; up2 = up2->next) {
-		if (collide) {
-			break;
-		}
+	collide = detect_intersect (r1, r2);
 
-		if (up2 == up1) {
-			continue;
-		}
-
-		collide = detect_intersect (&newpos, &up2->pos);
-	}
-	for (pp = first_pathblock; pp; pp = pp->next) {
-		if (collide) {
-			break;
-		}
-
-		collide = detect_intersect (&newpos, &pp->pos);
-	}
-	return (collide);
-}
-
-int
-collision_y (struct unit *up1)
-{
-	struct unit *up2;
-	struct pathblock *pp;
-	struct rect newpos;
-	double collide;
-
-	newpos.left = up1->pos.left;
-	newpos.right = up1->pos.right;
-	newpos.top = up1->pos.top + up1->mov_y;
-	newpos.bottom = up1->pos.bottom + up1->mov_y;
-
-	collide = 0;
-
-	if (newpos.top <= 0 || newpos.bottom >= HEIGHT) {
-		collide = 1;
-	}
-
-	for (up2 = first_unit; up2; up2 = up2->next) {
-		if (collide) {
-			break;
-		}
-
-		if (up2 == up1) {
-			continue;
-		}
-
-		collide = detect_intersect (&newpos, &up2->pos);
-	}
-
-	for (pp = first_pathblock; pp; pp = pp->next) {
-		if (collide) {
-			break;
-		}
-
-		collide = detect_intersect (&newpos, &pp->pos);
-	}
 	return (collide);
 }
 
@@ -378,39 +348,78 @@ void
 moving (void)
 {
 	double now, dt, dx, dy, theta;
-	struct unit *up;
+	struct unit *up1, *up2;
+	struct rect newpos;
+	struct pathblock *pp;
 
-	for (up = first_unit; up; up = up->next) {
+	for (up1 = first_unit; up1; up1 = up1->next) {
 		now = get_secs ();
 
-		if (up->moving) {
-			dx = up->moveto_x - up->pos.center_x;
-			dy = up->moveto_y - up->pos.center_y;
+		if (up1->moving) {
+			dx = up1->moveto_x - up1->pos.center_x;
+			dy = up1->moveto_y - up1->pos.center_y;
 			theta = atan2 (dy, dx);
 			
-			dt = now - up->lasttime;
+			dt = now - up1->lasttime;
 			
-			up->mov_x = SPEED * dt * cos (theta);
-			up->mov_y = SPEED * dt * sin (theta);
+			up1->mov_x = SPEED * dt * cos (theta);
+			up1->mov_y = SPEED * dt * sin (theta);
 			
-			if (fabs (up->mov_x) > fabs (dx)
-			    && fabs (up->mov_y) > fabs (dy)) {
-				up->pos.x1 = up->moveto_x - up->pos.w / 2;
-				up->pos.y1 = up->moveto_y - up->pos.h / 2;
-				up->moving = 0;
+			if (fabs (up1->mov_x) > fabs (dx)
+			    && fabs (up1->mov_y) > fabs (dy)) {
+				up1->pos.x1 = up1->moveto_x - up1->pos.w / 2;
+				up1->pos.y1 = up1->moveto_y - up1->pos.h / 2;
+				up1->moving = 0;
 			} else {
-				if (collision_x (up)) {
-					up->mov_x = 0;
+				newpos.left = up1->pos.left + up1->mov_x;
+				newpos.right = up1->pos.right + up1->mov_x;
+				newpos.top = up1->pos.top;
+				newpos.bottom = up1->pos.bottom;
+
+				for (up2 = first_unit; up2; up2 = up2->next) {
+					if (up2 == up1) {
+						continue;
+					}
+
+					if (check_collision (&newpos, &up2->pos)) {
+						up1->mov_x = 0;
+					}
 				}
-				up->pos.x1 += up->mov_x;
-				if (collision_y (up)) {
-					up->mov_y = 0;
+
+				for (pp = first_pathblock; pp; pp = pp->next) {
+					if (check_collision (&newpos, &pp->pos)) {
+						up1->mov_x = 0;
+					}
 				}
-				up->pos.y1 += up->mov_y;
+
+				up1->pos.x1 += up1->mov_x;
+
+				newpos.left = up1->pos.left;
+				newpos.right = up1->pos.right;
+				newpos.top = up1->pos.top + up1->mov_y;
+				newpos.bottom = up1->pos.bottom + up1->mov_y;
+
+				for (up2 = first_unit; up2; up2 = up2->next) {
+					if (up2 == up1) {
+						continue;
+					}
+
+					if (check_collision (&newpos, &up2->pos)) {
+						up1->mov_y = 0;
+					}
+				}
+
+				for (pp = first_pathblock; pp; pp = pp->next) {
+					if (check_collision (&newpos, &pp->pos)) {
+						up1->mov_y = 0;
+					}
+				}
+
+				up1->pos.y1 += up1->mov_y;
 			}
 			
-			up->lasttime = now;
-			unit_def (up, NULL);
+			up1->lasttime = now;
+			unit_def (up1, NULL);
 		}
 	}
 }
@@ -422,12 +431,25 @@ draw (void)
 	double now, dt;
 	struct unit *up;
 	struct pathblock *pp;
+	struct rect r1;
 
 	for (i = 0; i <= WIDTH / 25; i++) {
 		for (j = 0; j <= HEIGHT / 25; j++) {
-			rectangleColor (screen, i * 25, j * 25,
-					(i + 1) * 25, (j + 1) * 25,
+			r1.x1 = i * 25;
+			r1.y1 = j * 25;
+			r1.h = 25;
+			r1.w = 25;
+			rect_def (&r1);
+
+			rectangleColor (screen, r1.left, r1.top, r1.right, r1.bottom,
 					0x66666666);
+
+			for (pp = first_pathblock; pp; pp = pp->next) {
+				if (check_collision (&r1, &pp->pos)) {
+					boxColor (screen, r1.left, r1.top,
+						  r1.right, r1.bottom, 0x66666666);
+				}
+			}
 		}
 	}
 
@@ -443,7 +465,7 @@ draw (void)
 	}
 
 	for (pp = first_pathblock; pp; pp = pp->next) {
-		boxColor (screen, pp->left, pp->top, pp->right, pp->bottom,
+		boxColor (screen, pp->pos.left, pp->pos.top, pp->pos.right, pp->pos.bottom,
 			  pp->color);
 	}
 
@@ -477,6 +499,13 @@ process_input (void)
 		switch (event.type) {
 		case SDL_QUIT:
 			exit (0);
+		case SDL_KEYDOWN:
+			if (key == 'p') {
+				mode = PATHING;
+			}
+			if (key == 'm') {
+				mode = MOVEMENT;
+			}
 		case SDL_KEYUP:
 			if (key == SDLK_ESCAPE || key == 'q') {
 				exit (0);
@@ -501,12 +530,18 @@ main (int argc, char **argv)
 {
 	alexsdl_init (WIDTH, HEIGHT, SDL_HWSURFACE | SDL_DOUBLEBUF);
 
+	mode = MOVEMENT;
+
 	run_inits ();
 
 	while (1) {
 		process_input ();
 		SDL_FillRect (screen, NULL, 0x000000);
-		selecting ();
+		if (mode == MOVEMENT) {
+			selecting ();
+		} else if (mode == PATHING) {
+			pathing ();
+		}
 		moving ();
 		draw ();
 		SDL_Flip (screen);
