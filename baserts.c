@@ -4,6 +4,7 @@ enum {
 	WIDTH = 640,
 	HEIGHT = 480,
 	SPEED = 300,
+	PATH_RESO = 25,
 };
 
 enum {
@@ -49,11 +50,20 @@ struct pathblock {
 
 struct pathblock *first_pathblock, *last_pathblock;
 
+struct node {
+	struct rect r;
+	int occupied, cost;
+	double center_x, center_y;
+};
+
+struct node *map[(int)(WIDTH/PATH_RESO)+1][(int)(HEIGHT/PATH_RESO)+1];
+
 void rect_def (struct rect *r1);
 void unit_def (struct unit *up, struct pathblock *pp);
 void init_pathblock (void);
 void init_selectbox (void);
 void init_destimg (void);
+void init_nodes (void);
 void run_inits (void);
 void check_direction (struct rect *sp);
 void select_check (double left, double right, double top, double bottom);
@@ -61,7 +71,7 @@ void pathing (void);
 void selecting (void);
 void destination (void);
 int detect_intersect (struct rect *r1, struct rect *r2);
-int check_collision (struct rect *r1, struct rect *r2);
+int illegal_move (struct rect *r1, struct rect *r2);
 void moving (void);
 void draw (void);
 void process_input (void);
@@ -179,12 +189,44 @@ init_destimg (void)
 }
 
 void
+init_nodes (void)
+{
+	struct pathblock *pp;
+	int i, j;
+
+	for (i = 0; i <= WIDTH / 25; i++) {
+		for (j = 0; j <= HEIGHT / 25; j++) {
+			struct node *np;
+
+			np = xcalloc (1, sizeof *np);
+
+			map[i][j] = np;
+
+			np->occupied = 0;
+			np->r.x1 = i * 25;
+			np->r.y1 = j * 25;
+			np->r.h = 25;
+			np->r.w = 25;
+			
+			rect_def (&np->r);
+
+			for (pp = first_pathblock; pp; pp = pp->next) {
+				if (detect_intersect (&np->r, &pp->pos)) {
+					np->occupied = 1;
+				}
+			}
+		}
+	}
+}
+
+void
 run_inits (void)
 {
 	init_units ();
 	init_selectbox ();
 	init_destimg ();
 	init_pathblock ();
+	init_nodes ();
 }
 
 void
@@ -236,7 +278,7 @@ pathing (void)
 		}
 	}
 
-	//implement A*
+	
 }
 
 void
@@ -329,7 +371,7 @@ detect_intersect (struct rect *r1, struct rect *r2)
 }
 
 int
-check_collision (struct rect *r1, struct rect *r2)
+illegal_move (struct rect *r1, struct rect *r2)
 {
 	int collide;
 
@@ -381,13 +423,13 @@ moving (void)
 						continue;
 					}
 
-					if (check_collision (&newpos, &up2->pos)) {
+					if (illegal_move (&newpos, &up2->pos)) {
 						up1->mov_x = 0;
 					}
 				}
 
 				for (pp = first_pathblock; pp; pp = pp->next) {
-					if (check_collision (&newpos, &pp->pos)) {
+					if (illegal_move (&newpos, &pp->pos)) {
 						up1->mov_x = 0;
 					}
 				}
@@ -404,13 +446,13 @@ moving (void)
 						continue;
 					}
 
-					if (check_collision (&newpos, &up2->pos)) {
+					if (illegal_move (&newpos, &up2->pos)) {
 						up1->mov_y = 0;
 					}
 				}
 
 				for (pp = first_pathblock; pp; pp = pp->next) {
-					if (check_collision (&newpos, &pp->pos)) {
+					if (illegal_move (&newpos, &pp->pos)) {
 						up1->mov_y = 0;
 					}
 				}
@@ -431,25 +473,22 @@ draw (void)
 	double now, dt;
 	struct unit *up;
 	struct pathblock *pp;
-	struct rect r1;
 
-	for (i = 0; i <= WIDTH / 25; i++) {
-		for (j = 0; j <= HEIGHT / 25; j++) {
-			r1.x1 = i * 25;
-			r1.y1 = j * 25;
-			r1.h = 25;
-			r1.w = 25;
-			rect_def (&r1);
 
-			rectangleColor (screen, r1.left, r1.top, r1.right, r1.bottom,
+	for (i = 0; i <= (int) (WIDTH/PATH_RESO); i++) {
+		for (j = 0; j <= (int) (HEIGHT/PATH_RESO); j++) {
+			rectangleColor (screen,
+					map[i][j]->r.left, map[i][j]->r.top,
+					map[i][j]->r.right, map[i][j]->r.bottom,
+//					r1.left, r1.top, r1.right, r1.bottom,
 					0x66666666);
-
-			for (pp = first_pathblock; pp; pp = pp->next) {
-				if (check_collision (&r1, &pp->pos)) {
-					boxColor (screen, r1.left, r1.top,
-						  r1.right, r1.bottom, 0x66666666);
-				}
-			}
+			if (map[i][j]->occupied) {
+				boxColor (screen,
+					  map[i][j]->r.left, map[i][j]->r.top,
+					  map[i][j]->r.right, map[i][j]->r.bottom,
+//					  r1.left, r1.top, r1.right, r1.bottom,
+					  0x66666666);
+			}				
 		}
 	}
 
