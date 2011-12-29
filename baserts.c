@@ -1,19 +1,23 @@
 #include "alexsdl.h"
 
-enum {
-	WIDTH = 640,
-	HEIGHT = 480,
-	SPEED = 300,
-	PATH_RESO = 25,
+#define WIDTH 640
+#define HEIGHT 480
+#define SPEED 300
+#define PATH_RESO 25
+
+enum bool {
+	FALSE,
+	TRUE,
 };
 
-enum {
+enum state {
 	MOVEMENT,
 	PATHING,
 };
 
-int mousebutton[10], mode;
-double mouse_x, mouse_y;
+enum state mode;
+int mousebutton[10];
+double mouse_x, mouse_y, path_x, path_y;
 
 struct rect {
 	double x1, y1, x2, y2, h, w, center_x, center_y;
@@ -27,7 +31,8 @@ struct rect selectbox;
 struct unit {
 	struct unit *next;
 	struct rect pos;
-	double mov_x, mov_y, moveto_x, moveto_y, moving, selected, path_x, path_y;
+	struct node *loc;
+	double mov_x, mov_y, moveto_x, moveto_y, moving, selected;
 	double lasttime;
 	Uint32 color;
 };
@@ -57,6 +62,22 @@ struct node {
 };
 
 struct node *map[(int)(WIDTH/PATH_RESO)+1][(int)(HEIGHT/PATH_RESO)+1];
+
+struct queue {
+	struct queue *next, *prev;
+	struct node *np;
+};
+
+struct path {
+	struct path *next;
+	struct link *start, *end;
+	double len, cost;
+};
+
+struct link {
+	struct link *next;
+	struct node *np1, np2;
+};
 
 void rect_def (struct rect *r1);
 void unit_def (struct unit *up, struct pathblock *pp);
@@ -264,21 +285,31 @@ select_check (double left, double right, double top, double bottom)
 	}
 }
 
+double
+get_heur (struct node *np1, struct node *np2)
+{
+	
+}
+
 void
 pathing (void)
 {
-	struct unit *up;
+	enum bool searching;
+	struct unit *up, *prev;
+	struct node *cur;
+	struct path queue;
 
-	if (mousebutton[1]) {
-		for (up = first_unit; up; up = up->next) {
-			if (up->selected) {
-				up->path_x = mouse_x;
-				up->path_y = mouse_y;
-			}
+	searching = TRUE;
+
+	for (up = first_unit; up; prev = up, up = up->next) {
+		queue.start->np1 = up->loc;
+		queue.end->np1 = up->loc;
+		cur = up->loc;
+
+		while (searching) {
+			
 		}
 	}
-
-	
 }
 
 void
@@ -473,7 +504,10 @@ draw (void)
 	double now, dt;
 	struct unit *up;
 	struct pathblock *pp;
+	struct rect *rp;
 
+	circleColor (screen, path_x, path_y, 3, 0xff0000ff);
+	aacircleColor (screen, path_x, path_y, 3, 0xff0000ff);
 
 	for (i = 0; i <= (int) (WIDTH/PATH_RESO); i++) {
 		for (j = 0; j <= (int) (HEIGHT/PATH_RESO); j++) {
@@ -489,6 +523,27 @@ draw (void)
 //					  r1.left, r1.top, r1.right, r1.bottom,
 					  0x66666666);
 			}				
+
+			up = xcalloc (1, sizeof *up);
+			up = first_unit;
+			if (i*PATH_RESO <= up->pos.center_x
+			    && (i+1)*PATH_RESO > up->pos.center_x
+			    && j*PATH_RESO <= up->pos.center_y
+			    && (j+1)*PATH_RESO > up->pos.center_y) {
+				up->loc = map[i][j];
+				boxColor (screen, up->loc->r.left, up->loc->r.top,
+					  up->loc->r.right, up->loc->r.bottom, 0xffff00ff);
+			}
+
+			if (i*PATH_RESO <= path_x
+			    && (i+1)*PATH_RESO > path_x
+			    && j*PATH_RESO <= path_y
+			    && (j+1)*PATH_RESO > path_y) {
+				rp = xcalloc (1, sizeof *rp);
+				rp = &map[i][j]->r;
+				boxColor (screen, up->loc->r.left, up->loc->r.top,
+					  up->loc->r.right, up->loc->r.bottom, 0xff00ffff);
+			}
 		}
 	}
 
@@ -555,6 +610,12 @@ process_input (void)
 			break;
 		case SDL_MOUSEBUTTONUP:
 			mousebutton[event.button.button] = 0;
+
+			if (mode == PATHING) {
+				path_x = mouse_x;
+				path_y = mouse_y;
+			}
+
 			break;
 		case SDL_MOUSEMOTION:
 			mouse_x = event.button.x;
@@ -576,10 +637,13 @@ main (int argc, char **argv)
 	while (1) {
 		process_input ();
 		SDL_FillRect (screen, NULL, 0x000000);
-		if (mode == MOVEMENT) {
+		switch (mode) {
+		case MOVEMENT:
 			selecting ();
-		} else if (mode == PATHING) {
+			break;
+		case PATHING:
 			pathing ();
+			break;
 		}
 		moving ();
 		draw ();
