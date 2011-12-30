@@ -14,6 +14,7 @@ enum bool {
 enum state {
 	MOVEMENT,
 	PATHING,
+	PICK_GOAL,
 };
 
 enum dir {
@@ -40,6 +41,7 @@ struct unit {
 	struct unit *next;
 	struct rect pos;
 	struct node *loc;
+	struct path *path;
 	double mov_x, mov_y, moveto_x, moveto_y, moving, selected;
 	double lasttime;
 	Uint32 color;
@@ -67,10 +69,9 @@ struct node {
 	struct rect r;
 	int occupied, cost, extended;
 	int block_x, block_y;
-	double center_x, center_y;
 };
 
-struct node *map[(int)(WIDTH/PATH_RESO)+1][(int)(HEIGHT/PATH_RESO)+1];
+struct node *map[(int)(WIDTH/PATH_RESO)+1][(int)(HEIGHT/PATH_RESO)+1], *goal;
 
 struct path {
 	struct path *path_next, *path_prev;
@@ -261,11 +262,11 @@ init_nodes (void)
 void
 run_inits (void)
 {
+	init_pathblock ();
 	init_nodes ();
 	init_units ();
 	init_selectbox ();
 	init_destimg ();
-	init_pathblock ();
 }
 
 void
@@ -308,8 +309,8 @@ get_heur (struct node *np1, struct node *np2)
 {
 	struct vect v;
 
-	v.x = np1->center_x - np2->center_x;
-	v.y = np1->center_y - np2->center_y;
+	v.x = np1->r.center_x - np2->r.center_x;
+	v.y = np1->r.center_y - np2->r.center_y;
 
 	return (hypot (v.x, v.y));
 }
@@ -346,6 +347,8 @@ ext_node (struct nodelink *lp1, enum dir d)
 
 		lp2 = xcalloc (1, sizeof *lp2);
 		lp2->np = np;
+		lp2->cost = lp1->cost + 1;
+		lp2->heur = get_heur (lp2->np, goal);
 
 		return (lp2);
 	}
@@ -383,6 +386,7 @@ void
 pathing (void)
 {
 	int i, j;
+	double best_val;
 	struct unit *up;
 	struct path *path, queue, *best;
 	struct nodelink *lp;
@@ -400,6 +404,8 @@ pathing (void)
 
 	lp = xcalloc (1, sizeof *lp);
 	lp->np = up->loc;
+	lp->cost = 0;
+	lp->heur = get_heur (lp->np, goal);
 
 	path = xcalloc (1, sizeof *path);
 	path->links_head = lp;
@@ -410,15 +416,28 @@ pathing (void)
 	queue.path_prev->path_next = path;
 	queue.path_prev = path;
 
-//	best_val = 0;
-//	best = path;
+	best_val = INFINITY;
 	while (queue.path_next != &queue) {
 		best = queue.path_next;
+		for (path = queue.path_next; path != &queue; path = path->path_next) {
+			if (path->links_tail->cost + path->links_tail->heur
+			    <= best_val) {
+				best_val = path->links_tail->cost
+					+ path->links_tail->heur;
+				best = path;
+			}
+		}
 
 		best->path_prev->path_next = best->path_next;
 		best->path_next->path_prev = best->path_prev;
 		best->path_next = NULL;
 		best->path_prev = NULL;
+
+		if (best->links_tail->np == goal) {
+			up->path = best;
+			mode = MOVEMENT;
+			return;
+		}
 
 		if ((lp = ext_node (best->links_tail, UP)) != NULL) {
 			path = clone_path (best);
@@ -658,7 +677,6 @@ draw (void)
 	double now, dt;
 	struct unit *up;
 	struct pathblock *pp;
-	struct rect *rp;
 
 	circleColor (screen, path_x, path_y, 3, 0xff0000ff);
 	aacircleColor (screen, path_x, path_y, 3, 0xff0000ff);
@@ -686,16 +704,20 @@ draw (void)
 				boxColor (screen, up->loc->r.left, up->loc->r.top,
 					  up->loc->r.right, up->loc->r.bottom, 0xffff00ff);
 			}
+		}
+	}
 
-			if (i*PATH_RESO <= path_x
-			    && (i+1)*PATH_RESO > path_x
-			    && j*PATH_RESO <= path_y
-			    && (j+1)*PATH_RESO > path_y) {
-				rp = xcalloc (1, sizeof *rp);
-				rp = &map[i][j]->r;
-				boxColor (screen, rp->left, rp->top,
-					  rp->right, rp->bottom, 0xff00ffff);
-			}
+	if (goal != NULL)
+		boxColor (screen, goal->r.left, goal->r.top, goal->r.right,
+			  goal->r.bottom, 0xff00ffff);
+
+	struct nodelink *lp;
+	struct rect *rp;
+	if (first_unit->path != NULL) {
+		for (lp = first_unit->path->links_head; lp; lp = lp->next) {
+			rp = &lp->np->r;
+			boxColor (screen, rp->left, rp->top, rp->right, rp->bottom,
+				  0x0000ff88);
 		}
 	}
 
@@ -737,6 +759,7 @@ draw (void)
 void
 process_input (void)
 {
+	int i, j;
 	SDL_Event event;
 	int key;
 
@@ -747,7 +770,7 @@ process_input (void)
 			exit (0);
 		case SDL_KEYDOWN:
 			if (key == 'p') {
-				mode = PATHING;
+				mode = PICK_GOAL;
 			}
 			if (key == 'm') {
 				mode = MOVEMENT;
@@ -763,9 +786,22 @@ process_input (void)
 		case SDL_MOUSEBUTTONUP:
 			mousebutton[event.button.button] = 0;
 
-			if (mode == PATHING) {
+			if (mode == PICK_GOAL) {
+				mode = PATHING;
 				path_x = mouse_x;
 				path_y = mouse_y;
+
+				for (i = 0; i <= (int) (WIDTH/PATH_RESO); i++) {
+					for (j = 0; j <= (int) (HEIGHT/PATH_RESO);
+					     j++) {
+						if (i*PATH_RESO <= path_x
+						    && (i+1)*PATH_RESO > path_x
+						    && j*PATH_RESO <= path_y
+						    && (j+1)*PATH_RESO > path_y) {
+							goal = map[i][j];
+						}
+					}
+				}
 			}
 
 			break;
@@ -795,6 +831,8 @@ main (int argc, char **argv)
 			break;
 		case PATHING:
 			pathing ();
+			break;
+		case PICK_GOAL:
 			break;
 		}
 		moving ();

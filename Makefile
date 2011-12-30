@@ -1,4 +1,4 @@
-CFLAGS = -g -Wall `sdl-config --cflags` -O2
+CFLAGS = -g -Wall `sdl-config --cflags`
 LIBS = -g -Wall `sdl-config --libs` -lm -lSDL_image -lSDL_gfx -lSDL_ttf -lglut -lGLU
 
 BASERTS_OBJS = baserts.o alex.o
