@@ -1,4 +1,5 @@
-#include "alexsdl.h"
+//#include "alexsdl.h"
+#include "alex.h"
 
 #define WIDTH 640
 #define HEIGHT 480
@@ -13,6 +14,13 @@ enum bool {
 enum state {
 	MOVEMENT,
 	PATHING,
+};
+
+enum dir {
+	UP,
+	DOWN,
+	LEFT,
+	RIGHT,
 };
 
 enum state mode;
@@ -57,26 +65,23 @@ struct pathblock *first_pathblock, *last_pathblock;
 
 struct node {
 	struct rect r;
-	int occupied, cost;
+	int occupied, cost, extended;
+	int block_x, block_y;
 	double center_x, center_y;
 };
 
 struct node *map[(int)(WIDTH/PATH_RESO)+1][(int)(HEIGHT/PATH_RESO)+1];
 
-struct queue {
-	struct queue *next, *prev;
-	struct node *np;
-};
-
 struct path {
-	struct path *next;
-	struct link *start, *end;
-	double len, cost;
+	struct path *path_next, *path_prev;
+	struct nodelink *links_head, *links_tail;
 };
 
-struct link {
-	struct link *next;
-	struct node *np1, np2;
+struct nodelink {
+	struct nodelink *next;
+	struct node *np;
+	int cost;
+	double heur;
 };
 
 void rect_def (struct rect *r1);
@@ -153,6 +158,7 @@ init_pathblock (void)
 void
 init_units (void)
 {
+	int i, j;
 	double units, unit_x, unit_y;
 
 	unit_x = 200;
@@ -181,6 +187,16 @@ init_units (void)
 		up->lasttime = get_secs();
 		up->moving = 0;
 		unit_x += 200;
+
+		for (i = 0; i <= (int) (WIDTH/PATH_RESO); i++) {
+			for (j = 0; j <= (int) (HEIGHT/PATH_RESO); j++) {
+				if (i*PATH_RESO <= up->pos.center_x
+				    && (i+1)*PATH_RESO > up->pos.center_x
+				    && j*PATH_RESO <= up->pos.center_y
+				    && (j+1)*PATH_RESO > up->pos.center_y)
+					up->loc = map[i][j];
+			}
+		}
 	}
 }
 
@@ -228,6 +244,8 @@ init_nodes (void)
 			np->r.y1 = j * 25;
 			np->r.h = 25;
 			np->r.w = 25;
+			np->block_x = i;
+			np->block_y = j;
 			
 			rect_def (&np->r);
 
@@ -243,11 +261,11 @@ init_nodes (void)
 void
 run_inits (void)
 {
+	init_nodes ();
 	init_units ();
 	init_selectbox ();
 	init_destimg ();
 	init_pathblock ();
-	init_nodes ();
 }
 
 void
@@ -288,26 +306,162 @@ select_check (double left, double right, double top, double bottom)
 double
 get_heur (struct node *np1, struct node *np2)
 {
-	
+	struct vect v;
+
+	v.x = np1->center_x - np2->center_x;
+	v.y = np1->center_y - np2->center_y;
+
+	return (hypot (v.x, v.y));
+}
+
+struct nodelink *
+ext_node (struct nodelink *lp1, enum dir d)
+{
+	struct node *np;
+	struct nodelink *lp2;
+
+	np = NULL;
+
+	switch (d) {
+	case UP:
+		if (lp1->np->r.top >= PATH_RESO)
+			np = map[lp1->np->block_x][lp1->np->block_y-1];
+		break;
+	case DOWN:
+		if (lp1->np->r.bottom + PATH_RESO <= HEIGHT)
+			np = map[lp1->np->block_x][lp1->np->block_y+1];
+		break;
+	case LEFT:
+		if (lp1->np->r.left >= PATH_RESO)
+			np = map[lp1->np->block_x-1][lp1->np->block_y];
+		break;
+	case RIGHT:
+		if (lp1->np->r.right + PATH_RESO <= WIDTH)
+			np = map[lp1->np->block_x+1][lp1->np->block_y];
+		break;
+	}
+
+	if (np != NULL && np->occupied != 1 && np->extended == 0) {
+		np->extended = 1;
+
+		lp2 = xcalloc (1, sizeof *lp2);
+		lp2->np = np;
+
+		return (lp2);
+	}
+
+	return (NULL);
+}
+
+struct path *
+clone_path (struct path *pp1)
+{
+	struct nodelink *lp1, *lp2;
+	struct path *pp2;
+
+	pp2 = xcalloc (1, sizeof *pp2);
+
+	for (lp1 = pp1->links_head; lp1; lp1 = lp1->next) {
+		lp2 = xcalloc (1, sizeof *lp2);
+		lp2->np = lp1->np;
+		lp2->cost = lp1->cost;
+		lp2->heur = lp2->heur;
+		
+		if (pp2->links_head == NULL) {
+			pp2->links_head = lp2;
+			pp2->links_tail = lp2;
+		} else {
+			pp2->links_tail->next = lp2;
+			pp2->links_tail = lp2;
+		}
+	}
+
+	return (pp2);
 }
 
 void
 pathing (void)
 {
-	enum bool searching;
-	struct unit *up, *prev;
-	struct node *cur;
-	struct path queue;
+	int i, j;
+	struct unit *up;
+	struct path *path, queue, *best;
+	struct nodelink *lp;
 
-	searching = TRUE;
+	for (i = 0; i <= (int) (WIDTH/PATH_RESO); i++) {
+		for (j = 0; j <= (int) (HEIGHT/PATH_RESO); j++) {
+			map[i][j]->extended = 0;
+		}
+	}
 
-	for (up = first_unit; up; prev = up, up = up->next) {
-		queue.start->np1 = up->loc;
-		queue.end->np1 = up->loc;
-		cur = up->loc;
+	queue.path_next = &queue;
+	queue.path_prev = &queue;
 
-		while (searching) {
-			
+	up = first_unit;
+
+	lp = xcalloc (1, sizeof *lp);
+	lp->np = up->loc;
+
+	path = xcalloc (1, sizeof *path);
+	path->links_head = lp;
+	path->links_tail = lp;
+
+	path->path_next = &queue;
+	path->path_prev = queue.path_prev;
+	queue.path_prev->path_next = path;
+	queue.path_prev = path;
+
+//	best_val = 0;
+//	best = path;
+	while (queue.path_next != &queue) {
+		best = queue.path_next;
+
+		best->path_prev->path_next = best->path_next;
+		best->path_next->path_prev = best->path_prev;
+		best->path_next = NULL;
+		best->path_prev = NULL;
+
+		if ((lp = ext_node (best->links_tail, UP)) != NULL) {
+			path = clone_path (best);
+			path->links_tail->next = lp;
+			path->links_tail = lp;
+
+			path->path_prev = &queue;
+			path->path_next = queue.path_next;
+			queue.path_next->path_prev = path;
+			queue.path_next = path;
+		}
+
+		if ((lp = ext_node (best->links_tail, DOWN)) != NULL) {
+			path = clone_path (best);
+			path->links_tail->next = lp;
+			path->links_tail = lp;
+
+			path->path_prev = &queue;
+			path->path_next = queue.path_next;
+			queue.path_next->path_prev = path;
+			queue.path_next = path;
+		}
+
+		if ((lp = ext_node (best->links_tail, LEFT)) != NULL) {
+			path = clone_path (best);
+			path->links_tail->next = lp;
+			path->links_tail = lp;
+
+			path->path_prev = &queue;
+			path->path_next = queue.path_next;
+			queue.path_next->path_prev = path;
+			queue.path_next = path;
+		}
+
+		if ((lp = ext_node (best->links_tail, RIGHT)) != NULL) {
+			path = clone_path (best);
+			path->links_tail->next = lp;
+			path->links_tail = lp;
+
+			path->path_prev = &queue;
+			path->path_next = queue.path_next;
+			queue.path_next->path_prev = path;
+			queue.path_next = path;
 		}
 	}
 }
@@ -514,13 +668,11 @@ draw (void)
 			rectangleColor (screen,
 					map[i][j]->r.left, map[i][j]->r.top,
 					map[i][j]->r.right, map[i][j]->r.bottom,
-//					r1.left, r1.top, r1.right, r1.bottom,
 					0x66666666);
 			if (map[i][j]->occupied) {
 				boxColor (screen,
 					  map[i][j]->r.left, map[i][j]->r.top,
 					  map[i][j]->r.right, map[i][j]->r.bottom,
-//					  r1.left, r1.top, r1.right, r1.bottom,
 					  0x66666666);
 			}				
 
@@ -541,8 +693,8 @@ draw (void)
 			    && (j+1)*PATH_RESO > path_y) {
 				rp = xcalloc (1, sizeof *rp);
 				rp = &map[i][j]->r;
-				boxColor (screen, up->loc->r.left, up->loc->r.top,
-					  up->loc->r.right, up->loc->r.bottom, 0xff00ffff);
+				boxColor (screen, rp->left, rp->top,
+					  rp->right, rp->bottom, 0xff00ffff);
 			}
 		}
 	}

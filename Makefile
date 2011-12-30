@@ -1,8 +1,9 @@
 CFLAGS = -g -Wall `sdl-config --cflags` -O2
-LIBS = -g -Wall `sdl-config --libs` -lm -lSDL_image -lSDL_gfx -lSDL_ttf
+LIBS = -g -Wall `sdl-config --libs` -lm -lSDL_image -lSDL_gfx -lSDL_ttf -lglut -lGLU
 
-baserts: baserts.o alexsdl.o alex.o
-	$(CC) $(CFLAGS) -o baserts baserts.o alexsdl.o alex.o $(LIBS)
+BASERTS_OBJS = baserts.o alex.o
+baserts: $(BASERTS_OBJS)
+	$(CC) $(CFLAGS) -o baserts $(BASERTS_OBJS) $(LIBS)
 
 loadmap: loadmap.o alexsdl.o alex.o
 	$(CC) $(CFLAGS) -o loadmap loadmap.o alexsdl.o alex.o $(LIBS)
